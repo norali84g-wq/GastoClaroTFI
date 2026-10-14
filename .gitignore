@@ -29,3 +29,6 @@ Thumbs.db
 /frontend/dist-ssr
 /frontend/coverage
 *.local
+
+# ---------- Documentos privados (firmas, datos personales) ----------
+docs/propuesta/
