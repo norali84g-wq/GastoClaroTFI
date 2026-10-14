@@ -1,4 +1,4 @@
-# GastoClaroTIF
+# GastoClaroTFI
 
 **[🇪🇸 Español](#-español)** · **[🇬🇧 English](#-english)**
 
@@ -58,7 +58,7 @@ El usuario arma un presupuesto mensual detallado, registra lo que realmente gast
 ### Estructura del repositorio
 
 ```
-GastoClaroTIF/
+GastoClaroTFI/
 ├── backend/          # API Rails
 ├── frontend/         # App React (PWA)
 ├── docs/             # DER, wireframes, contrato de la API, informes
@@ -78,8 +78,8 @@ GastoClaroTIF/
 #### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/norali84g-wq/GastoClaroTIF.git
-cd GastoClaroTIF
+git clone https://github.com/norali84g-wq/GastoClaroTFI.git
+cd GastoClaroTFI
 ```
 
 #### 2. Levantar la base de datos
@@ -246,7 +246,7 @@ Users plan a detailed monthly budget, record what they actually spend, and the s
 ### Repository structure
 
 ```
-GastoClaroTIF/
+GastoClaroTFI/
 ├── backend/          # Rails API
 ├── frontend/         # React app (PWA)
 ├── docs/             # ERD, wireframes, API contract, reports
@@ -266,8 +266,8 @@ GastoClaroTIF/
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/norali84g-wq/GastoClaroTIF.git
-cd GastoClaroTIF
+git clone https://github.com/norali84g-wq/GastoClaroTFI.git
+cd GastoClaroTFI
 ```
 
 #### 2. Start the database
