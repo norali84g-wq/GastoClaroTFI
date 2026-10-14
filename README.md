@@ -21,18 +21,20 @@ GastoClaro ayuda a saber **en qué se va la plata**. Parte de una premisa simple
 
 El usuario arma un presupuesto mensual detallado, registra lo que realmente gasta y el sistema compara ambos: avisa cuando se está por pasar del presupuesto, pone en evidencia los gastos hormiga y muestra si un gasto subió por precio o por consumo. Los informes pueden expresarse en **moneda constante** (ajustados por IPC), para comparar meses sin que la inflación distorsione los números.
 
-### ¿Por qué ahora?
+### El problema
 
-> De cada 100 pesos que los bancos les prestaron a las familias argentinas, **casi 13 están en mora**. Es el nivel más alto en unos 20 años.
+Cada vez más familias argentinas no llegan a pagar lo que deben:
 
-- La irregularidad de los créditos a las familias llegó al **12,9 %** en julio de 2026. Un año antes rondaba el 4,5 %. *(BCRA)*
-- En **tarjetas de crédito** la mora es del **13,1 %** y en **préstamos personales**, del **15,9 %** (mayo 2026). *(BCRA)*
-- De 20,5 millones de personas con un crédito vigente, **6,3 millones están atrasadas** en sus pagos. *(Banco Provincia)*
-- El IPC es un promedio: con la canasta oficial (2004-05), la inflación acumulada entre noviembre de 2023 y enero de 2026 fue de **317 %**; con una canasta actualizada (2017-18), de **466 %**. La inflación que vive cada persona puede ser muy distinta del número oficial.
+- La mora de las familias con los bancos llegó al **12,9 %** en julio de 2026, la más alta en unos 20 años. *(BCRA)*
+- En tarjetas de crédito es del **13,1 %** y en préstamos personales, del **15,9 %**. Hay **6,3 millones** de personas atrasadas en sus pagos.
+- Tras una inflación de **211,4 %** en 2023 *(INDEC)*, en 2026 los salarios registrados siguen por debajo de los precios.
+- El IPC se basa en una canasta de consumo de 2004-05: cada persona vive una **inflación distinta** según lo que compra.
 
-Muchas veces el problema no es gastar de más, sino **no ver a tiempo** en qué se va la plata. GastoClaro está pensado para eso: **prevenir antes de tener que financiarse**. Te muestra **tu propia inflación**, te avisa **antes** de que te pases del presupuesto y te dice **cuánto te cuesta de verdad la tarjeta**.
+Las planillas y los Excel se terminan abandonando, y las apps que circulan son globales: no están pensadas para la realidad económica del país.
 
-<sub>Fuentes: [BCRA – Informe sobre Bancos, julio 2026](https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-bancos-2026-07.pdf) · [iProfesional, 24/07/2026](https://www.iprofesional.com/finanzas/460748-la-morosidad-de-las-familias-volvio-a-crecer-y-se-triplico-en-el-ultimo-ano) · [Infobae, 24/04/2026](https://www.infobae.com/economia/2026/04/24/empeoran-los-problemas-de-endeudamiento-de-las-familias-la-morosidad-casi-se-cuadruplico-en-un-ano-y-es-la-mas-alta-en-dos-decadas/) · [El Economista, 02/03/2026](https://eleconomista.com.ar/economia/polemica-medicion-indec-cual-inflacion-real-acumulada-2023-2026-n93029)</sub>
+**GastoClaro no es una app de gastos más.** Compara tu presupuesto con lo que realmente gastás, calcula tu **inflación personal** y te avisa **antes** de que tengas que endeudarte.
+
+👉 **[Conocé el análisis completo del problema y sus fuentes](docs/analisis-del-problema.md)**
 
 ### Funcionalidades
 
@@ -184,7 +186,7 @@ Ejemplos:
 
 ### Documentación
 
-- Propuesta del TFI → `docs/propuesta/`
+- Análisis del problema → [`docs/analisis-del-problema.md`](docs/analisis-del-problema.md)
 - DER → `docs/der/`
 - Wireframes → `docs/wireframes/`
 - Contrato de la API (método, ruta, payload, respuesta) → `docs/api/`
@@ -223,18 +225,20 @@ GastoClaro helps people understand **where their money goes**. It is built on a 
 
 Users plan a detailed monthly budget, record what they actually spend, and the system compares both: it warns them before they exceed the budget, highlights small recurring expenses ("ant expenses"), and shows whether an expense increased because of price or because of consumption. Reports can optionally be expressed in **constant currency** (adjusted by the national CPI), so months can be compared without inflation distorting the numbers.
 
-### Why now?
+### The problem
 
-> Out of every 100 pesos that banks lent to Argentine households, **almost 13 are in default**. It is the highest level in about 20 years.
+More and more Argentine households cannot keep up with their debts:
 
-- Household loan delinquency reached **12.9%** in July 2026, up from around 4.5% a year earlier. *(Central Bank of Argentina)*
-- Delinquency is **13.1%** on **credit cards** and **15.9%** on **personal loans** (May 2026). *(Central Bank of Argentina)*
-- Out of 20.5 million people with an active loan, **6.3 million are behind on payments**. *(Banco Provincia)*
-- The CPI is an average: with the official basket (2004-05), cumulative inflation from November 2023 to January 2026 was **317%**; with an updated basket (2017-18), **466%**. The inflation each person experiences can be very different from the official figure.
+- Household loan delinquency reached **12.9%** in July 2026, the highest in about 20 years. *(Central Bank of Argentina)*
+- It is **13.1%** on credit cards and **15.9%** on personal loans. **6.3 million** people are behind on their payments.
+- After **211.4%** inflation in 2023 *(INDEC)*, registered wages are still below prices in 2026.
+- The CPI is based on a 2004-05 consumption basket: each person experiences a **different inflation** depending on what they buy.
 
-Often the problem is not overspending, but **not seeing in time** where the money goes. GastoClaro is built for that: **prevent before having to borrow**. It shows **your own inflation**, warns you **before** you go over budget and tells you **what your credit card really costs**.
+Spreadsheets end up abandoned, and the apps available are global: they are not designed for the country's economic reality.
 
-<sub>Sources (in Spanish): [BCRA – Bank Report, July 2026](https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-bancos-2026-07.pdf) · [iProfesional, 07/24/2026](https://www.iprofesional.com/finanzas/460748-la-morosidad-de-las-familias-volvio-a-crecer-y-se-triplico-en-el-ultimo-ano) · [Infobae, 04/24/2026](https://www.infobae.com/economia/2026/04/24/empeoran-los-problemas-de-endeudamiento-de-las-familias-la-morosidad-casi-se-cuadruplico-en-un-ano-y-es-la-mas-alta-en-dos-decadas/) · [El Economista, 03/02/2026](https://eleconomista.com.ar/economia/polemica-medicion-indec-cual-inflacion-real-acumulada-2023-2026-n93029)</sub>
+**GastoClaro is not just another expense app.** It compares your budget with what you actually spend, calculates your **personal inflation** and warns you **before** you need to borrow.
+
+👉 **[Read the full problem analysis and its sources (in Spanish)](docs/analisis-del-problema.md)**
 
 ### Features
 
@@ -386,7 +390,7 @@ Examples:
 
 ### Documentation
 
-- Project proposal (Spanish) → `docs/propuesta/`
+- Problem analysis (Spanish) → [`docs/analisis-del-problema.md`](docs/analisis-del-problema.md)
 - ERD → `docs/der/`
 - Wireframes → `docs/wireframes/`
 - API contract (method, route, payload, response) → `docs/api/`
