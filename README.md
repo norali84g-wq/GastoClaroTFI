@@ -9,7 +9,7 @@
 **Aplicación web progresiva (PWA) para el registro y análisis de gastos personales.**
 
 Trabajo Final Integrador (TFI) — Tecnicatura Universitaria en Programación
-UTN Facultad Regional La Plata · 2026
+UTN Facultad Regional La Plata · 2026 · **Grupo 4**
 
 ---
 
@@ -21,6 +21,19 @@ GastoClaro ayuda a saber **en qué se va la plata**. Parte de una premisa simple
 
 El usuario arma un presupuesto mensual detallado, registra lo que realmente gasta y el sistema compara ambos: avisa cuando se está por pasar del presupuesto, pone en evidencia los gastos hormiga y muestra si un gasto subió por precio o por consumo. Los informes pueden expresarse en **moneda constante** (ajustados por IPC), para comparar meses sin que la inflación distorsione los números.
 
+### ¿Por qué ahora?
+
+> De cada 100 pesos que los bancos les prestaron a las familias argentinas, **casi 13 están en mora**. Es el nivel más alto en unos 20 años.
+
+- La irregularidad de los créditos a las familias llegó al **12,9 %** en julio de 2026. Un año antes rondaba el 4,5 %. *(BCRA)*
+- En **tarjetas de crédito** la mora es del **13,1 %** y en **préstamos personales**, del **15,9 %** (mayo 2026). *(BCRA)*
+- De 20,5 millones de personas con un crédito vigente, **6,3 millones están atrasadas** en sus pagos. *(Banco Provincia)*
+- El IPC es un promedio: con la canasta oficial (2004-05), la inflación acumulada entre noviembre de 2023 y enero de 2026 fue de **317 %**; con una canasta actualizada (2017-18), de **466 %**. La inflación que vive cada persona puede ser muy distinta del número oficial.
+
+Muchas veces el problema no es gastar de más, sino **no ver a tiempo** en qué se va la plata. GastoClaro está pensado para eso: **prevenir antes de tener que financiarse**. Te muestra **tu propia inflación**, te avisa **antes** de que te pases del presupuesto y te dice **cuánto te cuesta de verdad la tarjeta**.
+
+<sub>Fuentes: [BCRA – Informe sobre Bancos, julio 2026](https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-bancos-2026-07.pdf) · [iProfesional, 24/07/2026](https://www.iprofesional.com/finanzas/460748-la-morosidad-de-las-familias-volvio-a-crecer-y-se-triplico-en-el-ultimo-ano) · [Infobae, 24/04/2026](https://www.infobae.com/economia/2026/04/24/empeoran-los-problemas-de-endeudamiento-de-las-familias-la-morosidad-casi-se-cuadruplico-en-un-ano-y-es-la-mas-alta-en-dos-decadas/) · [El Economista, 02/03/2026](https://eleconomista.com.ar/economia/polemica-medicion-indec-cual-inflacion-real-acumulada-2023-2026-n93029)</sub>
+
 ### Funcionalidades
 
 | Módulo | Qué hace |
@@ -29,6 +42,7 @@ El usuario arma un presupuesto mensual detallado, registra lo que realmente gast
 | Categorías | Rubros y subrubros personalizables, clasificados como necesidad, deseo o ahorro/inversión |
 | Gastos | Alta, edición y baja de gastos, con ítems (cantidad y precio unitario), comercio, gasto fijo, canal de compra y foto del ticket |
 | Compras en cuotas | Se carga el total y la cantidad de cuotas; el sistema reparte cada cuota en su mes y muestra las pendientes |
+| Tarjetas de crédito | Costo de mantenimiento mensual e intereses cuando se financia el resumen: el costo real de usar la tarjeta |
 | Comercios | Navegación Panel → Categoría → Comercio → ítems, con totales en cada nivel |
 | Ingresos | Registro de ingresos por período |
 | Presupuesto | Presupuesto mensual por ítem y alertas al 80 % y al 100 % |
@@ -197,7 +211,7 @@ UTN Facultad Regional La Plata · Tecnicatura Universitaria en Programación
 **Progressive Web App (PWA) for tracking and analyzing personal expenses.**
 
 Final Integrative Project (TFI) — Programming Technician Degree (TUP)
-UTN Facultad Regional La Plata, Argentina · 2026
+UTN Facultad Regional La Plata, Argentina · 2026 · **Group 4**
 
 ---
 
@@ -209,6 +223,19 @@ GastoClaro helps people understand **where their money goes**. It is built on a 
 
 Users plan a detailed monthly budget, record what they actually spend, and the system compares both: it warns them before they exceed the budget, highlights small recurring expenses ("ant expenses"), and shows whether an expense increased because of price or because of consumption. Reports can optionally be expressed in **constant currency** (adjusted by the national CPI), so months can be compared without inflation distorting the numbers.
 
+### Why now?
+
+> Out of every 100 pesos that banks lent to Argentine households, **almost 13 are in default**. It is the highest level in about 20 years.
+
+- Household loan delinquency reached **12.9%** in July 2026, up from around 4.5% a year earlier. *(Central Bank of Argentina)*
+- Delinquency is **13.1%** on **credit cards** and **15.9%** on **personal loans** (May 2026). *(Central Bank of Argentina)*
+- Out of 20.5 million people with an active loan, **6.3 million are behind on payments**. *(Banco Provincia)*
+- The CPI is an average: with the official basket (2004-05), cumulative inflation from November 2023 to January 2026 was **317%**; with an updated basket (2017-18), **466%**. The inflation each person experiences can be very different from the official figure.
+
+Often the problem is not overspending, but **not seeing in time** where the money goes. GastoClaro is built for that: **prevent before having to borrow**. It shows **your own inflation**, warns you **before** you go over budget and tells you **what your credit card really costs**.
+
+<sub>Sources (in Spanish): [BCRA – Bank Report, July 2026](https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-bancos-2026-07.pdf) · [iProfesional, 07/24/2026](https://www.iprofesional.com/finanzas/460748-la-morosidad-de-las-familias-volvio-a-crecer-y-se-triplico-en-el-ultimo-ano) · [Infobae, 04/24/2026](https://www.infobae.com/economia/2026/04/24/empeoran-los-problemas-de-endeudamiento-de-las-familias-la-morosidad-casi-se-cuadruplico-en-un-ano-y-es-la-mas-alta-en-dos-decadas/) · [El Economista, 03/02/2026](https://eleconomista.com.ar/economia/polemica-medicion-indec-cual-inflacion-real-acumulada-2023-2026-n93029)</sub>
+
 ### Features
 
 | Module | What it does |
@@ -217,6 +244,7 @@ Users plan a detailed monthly budget, record what they actually spend, and the s
 | Categories | Customizable categories and subcategories, classified as need, want or savings/investment |
 | Expenses | Create, edit and delete expenses, with line items (quantity and unit price), store, fixed expense flag, purchase channel and receipt photo |
 | Installment purchases | Enter the total and number of installments; the system assigns each installment to its month and shows the remaining ones |
+| Credit cards | Monthly maintenance fee and interest when the statement is financed: the real cost of using the card |
 | Stores | Drill-down navigation Dashboard → Category → Store → items, with totals at each level |
 | Income | Income records per period |
 | Budget | Monthly budget per item, with alerts at 80% and 100% |
