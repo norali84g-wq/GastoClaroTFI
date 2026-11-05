@@ -43,8 +43,8 @@ Las planillas y los Excel se terminan abandonando, y las apps que circulan son g
 | Usuarios | Registro, inicio de sesión, recuperación de contraseña y perfil |
 | Categorías | Rubros y subrubros personalizables, clasificados como necesidad, deseo o ahorro/inversión |
 | Gastos | Alta, edición y baja de gastos, con ítems (cantidad y precio unitario), comercio, gasto fijo, canal de compra y foto del ticket |
-| Compras en cuotas | Se carga el total y la cantidad de cuotas; el sistema reparte cada cuota en su mes y muestra las pendientes |
-| Tarjetas de crédito | Costo de mantenimiento mensual e intereses cuando se financia el resumen: el costo real de usar la tarjeta |
+| Compras en cuotas | Se carga el total, la cantidad de cuotas y el interés; el sistema calcula cada cuota con interés, la reparte en su mes y muestra las pendientes |
+| Tarjetas de crédito | *(Trabajo futuro)* Costo de mantenimiento mensual e intereses cuando se financia el resumen |
 | Comercios | Navegación Panel → Categoría → Comercio → ítems, con totales en cada nivel |
 | Ingresos | Registro de ingresos por período |
 | Presupuesto | Presupuesto mensual por ítem y alertas al 80 % y al 100 % |
@@ -184,6 +184,10 @@ Ejemplos:
 - `fix: correct installment split for 12-month purchases`
 - `docs: update API contract for expenses`
 
+### Antecedentes
+
+El backend de GastoClaro se apoya en un desarrollo previo de la autora, realizado en la cursada de la TUP ([`norali84g-wq/gastoclaro`](https://github.com/norali84g-wq/gastoclaro)), que se adopta como base técnica del TFI y se amplía en este repositorio con presupuestos con alertas, informes por período, intereses en compras en cuotas y migración a MySQL. El frontend se construye a partir de [`ventureiranm/gastoClaro-front`](https://github.com/ventureiranm/gastoClaro-front). El historial de commits de este repositorio distingue la base incorporada del trabajo desarrollado para el TFI.
+
 ### Documentación
 
 - Análisis del problema → [`docs/analisis-del-problema.md`](docs/analisis-del-problema.md)
@@ -247,8 +251,8 @@ Spreadsheets end up abandoned, and the apps available are global: they are not d
 | Users | Sign up, log in, password recovery and profile |
 | Categories | Customizable categories and subcategories, classified as need, want or savings/investment |
 | Expenses | Create, edit and delete expenses, with line items (quantity and unit price), store, fixed expense flag, purchase channel and receipt photo |
-| Installment purchases | Enter the total and number of installments; the system assigns each installment to its month and shows the remaining ones |
-| Credit cards | Monthly maintenance fee and interest when the statement is financed: the real cost of using the card |
+| Installment purchases | Enter the total, number of installments and interest; the system computes each installment with interest, assigns it to its month and shows the remaining ones |
+| Credit cards | *(Future work)* Monthly maintenance fee and interest when the statement is financed |
 | Stores | Drill-down navigation Dashboard → Category → Store → items, with totals at each level |
 | Income | Income records per period |
 | Budget | Monthly budget per item, with alerts at 80% and 100% |
@@ -387,6 +391,10 @@ Examples:
 - `feat: add budget alert at 80%`
 - `fix: correct installment split for 12-month purchases`
 - `docs: update API contract for expenses`
+
+### Background
+
+The GastoClaro backend builds on a previous development by the author, carried out during the TUP program ([`norali84g-wq/gastoclaro`](https://github.com/norali84g-wq/gastoclaro)), adopted as the technical baseline of the TFI and extended in this repository with budgets with alerts, period reports, interest on installment purchases and migration to MySQL. The frontend is built from [`ventureiranm/gastoClaro-front`](https://github.com/ventureiranm/gastoClaro-front). This repository's commit history distinguishes the incorporated baseline from the work developed for the TFI.
 
 ### Documentation
 
