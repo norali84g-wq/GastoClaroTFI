@@ -41,7 +41,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
   end
 
   def installment_purchase_params
-    params.permit(:description, :total_amount, :installments_count, :interest_rate, :first_period, :category_id, :vendor_id)
+    params.permit(:description, :total_amount, :installments_count, :interest_rate, :card_monthly_fee, :first_period, :category_id, :vendor_id)
   end
 
   # Valida todo junto para devolver todos los errores en una sola respuesta. Devuelve true si no hay
@@ -70,6 +70,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
       total_amount: purchase.total_amount,
       installments_count: purchase.installments_count,
       interest_rate: purchase.interest_rate,
+      card_monthly_fee: purchase.card_monthly_fee,
       first_period: purchase.first_period,
       category_id: purchase.category_id,
       vendor_id: purchase.vendor_id,
