@@ -1,0 +1,21 @@
+# Dependencias y builds
+node_modules
+dist
+dist-ssr
+coverage
+
+# Variables de entorno: solo se versiona .env.example
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editores y sistema
+.idea
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.local
