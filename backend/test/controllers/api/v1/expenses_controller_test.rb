@@ -1,0 +1,177 @@
+require "test_helper"
+
+class Api::V1::ExpensesControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @familia = FamilyGroup.create!(name: "Familia de prueba")
+    @user = User.create!(user: "tester", password: "password123", family_group: @familia)
+    @headers = { "Authorization" => "Bearer #{AuthToken.encode(@user)}" }
+    @categoria = Category.create!(name: "Supermercado")
+
+    @otra_familia = FamilyGroup.create!(name: "Otra familia")
+    @otro_user = User.create!(user: "otro", password: "password123", family_group: @otra_familia)
+  end
+
+  test "index sin token da 401" do
+    get "/api/v1/expenses"
+
+    assert_response :unauthorized
+  end
+
+  test "index devuelve solo los gastos de la familia del usuario, con sus items" do
+    propio = Expense.new(user: @user, category: @categoria, date: Date.today, description: "propio")
+    propio.expense_items.build(name: "Leche", quantity: 2, unit_price: 100)
+    propio.save!
+    Expense.create!(user: @otro_user, category: @categoria, date: Date.today, amount: 777, description: "ajeno")
+
+    get "/api/v1/expenses", headers: @headers
+
+    assert_response :ok
+    gastos = response.parsed_body
+    assert_equal [ "propio" ], gastos.map { |g| g["description"] }
+    assert_equal [ "Leche" ], gastos.first["expense_items"].map { |i| i["name"] }
+  end
+
+  test "index devuelve el usuario como objeto con id y nombre" do
+    Expense.create!(user: @user, category: @categoria, date: Date.today, amount: 10)
+
+    get "/api/v1/expenses", headers: @headers
+
+    assert_response :ok
+    gasto = response.parsed_body.first
+    assert_equal({ "id" => @user.id, "user" => "tester" }, gasto["user"])
+    assert_not gasto.key?("user_id")
+  end
+
+  test "index con period devuelve solo los gastos de ese mes" do
+    Expense.create!(user: @user, category: @categoria, date: "2026-09-30", amount: 10, description: "septiembre")
+    Expense.create!(user: @user, category: @categoria, date: "2026-10-01", amount: 10, description: "octubre")
+
+    get "/api/v1/expenses", params: { period: "2026-09" }, headers: @headers
+
+    assert_response :ok
+    assert_equal [ "septiembre" ], response.parsed_body.map { |g| g["description"] }
+  end
+
+  test "index con period invalido da 422 con field period" do
+    [ "2026-13", "2026-9", "septiembre", "2026-09-01" ].each do |periodo|
+      get "/api/v1/expenses", params: { period: periodo }, headers: @headers
+
+      assert_response :unprocessable_entity, "period #{periodo.inspect} deberia rechazarse"
+      assert_equal [ { "field" => "period", "message" => "no es válido" } ], response.parsed_body["errors"]
+    end
+  end
+
+  test "index devuelve como maximo el tope de gastos, los mas recientes" do
+    tope = Api::V1::ExpensesController::MAX_INDEX_EXPENSES
+    (tope + 1).times do |i|
+      Expense.create!(user: @user, category: @categoria, date: Date.new(2025, 1, 1) + i, amount: 10)
+    end
+
+    get "/api/v1/expenses", headers: @headers
+
+    assert_response :ok
+    fechas = response.parsed_body.map { |g| g["date"] }
+    assert_equal tope, fechas.size
+    assert_not_includes fechas, "2025-01-01"
+  end
+
+  test "create sin token da 401" do
+    assert_no_difference "Expense.count" do
+      post "/api/v1/expenses", params: { amount: 10, date: "2026-09-29", category_id: @categoria.id }, as: :json
+    end
+
+    assert_response :unauthorized
+  end
+
+  test "create con items calcula el amount desde los items" do
+    params = {
+      amount: 999, date: "2026-09-29", description: "Compra semanal", category_id: @categoria.id,
+      expense_items_attributes: [
+        { name: "Leche", quantity: 2, unit_price: 100 },
+        { name: "Pan", quantity: 1, unit_price: 50 }
+      ]
+    }
+
+    assert_difference "Expense.count", 1 do
+      assert_difference "ExpenseItem.count", 2 do
+        post "/api/v1/expenses", params: params, headers: @headers, as: :json
+      end
+    end
+
+    assert_response :created
+    assert_equal 250, BigDecimal(response.parsed_body["amount"])
+    assert_equal 2, response.parsed_body["expense_items"].size
+  end
+
+  test "create sin items respeta el amount enviado" do
+    post "/api/v1/expenses", params: { amount: 500, date: "2026-09-28", category_id: @categoria.id },
+                             headers: @headers, as: :json
+
+    assert_response :created
+    assert_equal 500, BigDecimal(response.parsed_body["amount"])
+  end
+
+  test "create devuelve el usuario como objeto con id y nombre" do
+    post "/api/v1/expenses", params: { amount: 500, date: "2026-09-28", category_id: @categoria.id },
+                             headers: @headers, as: :json
+
+    assert_response :created
+    assert_equal({ "id" => @user.id, "user" => "tester" }, response.parsed_body["user"])
+  end
+
+  test "create ignora user_id y family_group_id enviados y usa el usuario logueado" do
+    post "/api/v1/expenses",
+         params: { amount: 10, date: "2026-09-29", category_id: @categoria.id,
+                   user_id: @otro_user.id, family_group_id: @otra_familia.id },
+         headers: @headers, as: :json
+
+    assert_response :created
+    gasto = Expense.find(response.parsed_body["id"])
+    assert_equal @user.id, gasto.user_id
+    assert_equal @familia.id, gasto.family_group_id
+  end
+
+  test "create con datos invalidos da 422 y no guarda nada" do
+    assert_no_difference "Expense.count" do
+      post "/api/v1/expenses", params: { amount: 0, category_id: @categoria.id }, headers: @headers, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    assert response.parsed_body["errors"].any?
+  end
+
+  test "create con vendor_id inexistente da 422" do
+    assert_no_difference "Expense.count" do
+      post "/api/v1/expenses",
+           params: { amount: 10, date: "2026-09-29", category_id: @categoria.id, vendor_id: 999_999 },
+           headers: @headers, as: :json
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "create con un vendor_id valido lo asocia al gasto" do
+    vendor = Vendor.create!(name: "Super")
+
+    post "/api/v1/expenses",
+         params: { amount: 10, date: "2026-09-29", category_id: @categoria.id, vendor_id: vendor.id },
+         headers: @headers, as: :json
+
+    assert_response :created
+    assert_equal vendor.id, response.parsed_body["vendor_id"]
+  end
+
+  test "create rechaza un vendor_id que no es un valor simple (intento de inyeccion SQL)" do
+    Vendor.create!(name: "Super")
+
+    [ [ "1=1" ], [ "1=1", "x" ], { "id" => "1" } ].each do |vendor_id_malicioso|
+      assert_no_difference "Expense.count" do
+        post "/api/v1/expenses",
+             params: { amount: 10, date: "2026-09-29", category_id: @categoria.id, vendor_id: vendor_id_malicioso },
+             headers: @headers, as: :json
+      end
+
+      assert_response :unprocessable_entity, "vendor_id #{vendor_id_malicioso.inspect} deberia rechazarse"
+    end
+  end
+end

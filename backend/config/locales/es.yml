@@ -1,0 +1,33 @@
+es:
+  api:
+    errors:
+      unauthorized: "No autorizado"
+      forbidden: "Acceso denegado"
+      not_found: "No encontrado"
+      invalid_credentials: "Usuario o contraseña incorrectos"
+      invalid_period: "no es válido"
+      invalid_year: "no es válido"
+      invalid_month: "no es válido"
+      category_in_use: "No se puede borrar: tiene gastos, compras en cuotas, gastos fijos o subcategorías"
+
+  errors:
+    messages:
+      # Igual que en el contrato de la API (api.md).
+      greater_than: "debe ser mayor a %{count}"
+
+  activerecord:
+    errors:
+      models:
+        expense:
+          attributes:
+            vendor_id:
+              # Se usa cuando el comercio no existe.
+              not_found: "no existe"
+        installment_purchase:
+          attributes:
+            vendor_id:
+              not_found: "no existe"
+    attributes:
+      user:
+        password: "contraseña"
+        password_confirmation: "confirmación de contraseña"

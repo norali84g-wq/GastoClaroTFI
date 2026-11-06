@@ -1,0 +1,131 @@
+require "test_helper"
+
+class Api::V1::DashboardControllerTest < ActionDispatch::IntegrationTest
+  HOY = Date.new(2026, 9, 15)
+
+  setup do
+    @familia = FamilyGroup.create!(name: "Familia de prueba", savings_percentage: 20)
+    @user = User.create!(user: "tester", password: "password123", family_group: @familia)
+    @pareja = User.create!(user: "pareja", password: "password123", family_group: @familia)
+    @headers = { "Authorization" => "Bearer #{AuthToken.encode(@user)}" }
+
+    @otra_familia = FamilyGroup.create!(name: "Otra familia")
+    @otro_user = User.create!(user: "otro", password: "password123", family_group: @otra_familia)
+
+    @comida = Category.create!(name: "Comida")
+    @transporte = Category.create!(name: "Transporte")
+
+    travel_to HOY
+  end
+
+  def dashboard
+    get "/api/v1/dashboard", headers: @headers
+    response.parsed_body
+  end
+
+  def decimal(valor)
+    BigDecimal(valor.to_s)
+  end
+
+  test "sin token da 401" do
+    get "/api/v1/dashboard"
+
+    assert_response :unauthorized
+  end
+
+  test "sin datos devuelve todo en cero" do
+    body = dashboard
+
+    assert_response :ok
+    assert_equal "2026-09", body["period"]
+    assert_equal 0, decimal(body["income"])
+    assert_equal 0, decimal(body["consumption"])
+    assert_equal 0, decimal(body["savings"])
+    assert_equal [], body["incomes"]
+    assert_equal [], body["consumption_by_category"]
+  end
+
+  test "suma solo los ingresos y gastos del mes del usuario y calcula el ahorro" do
+    Income.create!(user: @user, amount: 1000, date: Date.new(2026, 9, 1))
+    Income.create!(user: @pareja, amount: 500, date: Date.new(2026, 9, 10))
+    Expense.create!(user: @user, category: @comida, amount: 300, date: Date.new(2026, 9, 5))
+    Expense.create!(user: @pareja, category: @comida, amount: 100, date: Date.new(2026, 9, 6))
+
+    body = dashboard
+
+    assert_response :ok
+    assert_equal 1000, decimal(body["income"])
+    assert_equal 300, decimal(body["consumption"])
+    assert_equal 700, decimal(body["savings"])
+    assert_equal 20, body["savings_goal_percentage"]
+  end
+
+  test "deja afuera otros meses y otras familias" do
+    Income.create!(user: @user, amount: 1000, date: Date.new(2026, 9, 1))
+    Income.create!(user: @user, amount: 9999, date: Date.new(2026, 8, 31))
+    Income.create!(user: @otro_user, amount: 8888, date: Date.new(2026, 9, 2))
+    Expense.create!(user: @user, category: @comida, amount: 200, date: Date.new(2026, 9, 3))
+    Expense.create!(user: @user, category: @comida, amount: 7777, date: Date.new(2026, 10, 1))
+    Expense.create!(user: @otro_user, category: @comida, amount: 6666, date: Date.new(2026, 9, 3))
+
+    body = dashboard
+
+    assert_equal 1000, decimal(body["income"])
+    assert_equal 200, decimal(body["consumption"])
+    assert_equal [ { "id" => @user.id, "user" => "tester" } ], body["incomes"].map { |i| i["user"] }
+  end
+
+  test "agrupa el consumo del mes por categoria" do
+    Expense.create!(user: @user, category: @comida, amount: 300, date: Date.new(2026, 9, 5))
+    Expense.create!(user: @pareja, category: @comida, amount: 100, date: Date.new(2026, 9, 6))
+    Expense.create!(user: @user, category: @transporte, amount: 50, date: Date.new(2026, 9, 7))
+
+    por_categoria = dashboard["consumption_by_category"].to_h { |c| [ c["category"], decimal(c["total"]) ] }
+
+    assert_equal({ "Comida" => 300, "Transporte" => 50 }, por_categoria)
+  end
+
+  test "monthly_savings trae los ultimos 6 meses en orden con el acumulado" do
+    Income.create!(user: @user, amount: 500, date: Date.new(2026, 8, 10))
+    Expense.create!(user: @user, category: @comida, amount: 100, date: Date.new(2026, 8, 12))
+    Income.create!(user: @user, amount: 1000, date: Date.new(2026, 9, 1))
+    Expense.create!(user: @user, category: @comida, amount: 400, date: Date.new(2026, 9, 5))
+
+    meses = dashboard["monthly_savings"]
+
+    assert_equal %w[2026-04 2026-05 2026-06 2026-07 2026-08 2026-09], meses.map { |m| m["month"] }
+    agosto, septiembre = meses.last(2)
+    assert_equal 400, decimal(agosto["savings"])
+    assert_equal 400, decimal(agosto["accumulated"])
+    assert_equal 600, decimal(septiembre["savings"])
+    assert_equal 1000, decimal(septiembre["accumulated"])
+  end
+
+  test "consumption_by_category trae lo planificado del mes y las categorias solo planificadas" do
+    Expense.create!(user: @user, category: @comida, amount: 300, date: Date.new(2026, 9, 5))
+    ShoppingListItem.create!(family_group: @familia, category: @comida, name: "Arroz",
+                             period: "2026-09", quantity: 2, estimated_unit_price: 100)
+    ShoppingListItem.create!(family_group: @familia, category: @transporte, name: "SUBE",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 50)
+    ShoppingListItem.create!(family_group: @familia, category: @comida, name: "Mes anterior",
+                             period: "2026-08", quantity: 1, estimated_unit_price: 999)
+    ShoppingListItem.create!(family_group: @otra_familia, category: @comida, name: "Ajeno",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 999)
+
+    por_categoria = dashboard["consumption_by_category"].to_h do |c|
+      [ c["category"], [ decimal(c["total"]), decimal(c["planned"]) ] ]
+    end
+
+    assert_equal({ "Comida" => [ 300, 200 ], "Transporte" => [ 0, 50 ] }, por_categoria)
+  end
+
+  test "consumption_by_category trae el id de cada categoria" do
+    Expense.create!(user: @user, category: @comida, amount: 300, date: Date.new(2026, 9, 5))
+    ShoppingListItem.create!(family_group: @familia, category: @transporte, name: "SUBE",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 50)
+
+    ids = dashboard["consumption_by_category"].to_h { |c| [ c["category"], c["category_id"] ] }
+
+    assert_equal({ "Comida" => @comida.id, "Transporte" => @transporte.id }, ids)
+  end
+end
