@@ -16,6 +16,12 @@ class InstallmentPurchaseTest < ActiveSupport::TestCase
     assert c.errors.key?(:interest_rate)
   end
 
+  test "card_monthly_fee no puede ser negativo" do
+    c = compra(card_monthly_fee: -1)
+    c.valid?
+    assert c.errors.key?(:card_monthly_fee)
+  end
+
   test "periodos lista un periodo por cuota, cruzando de anio" do
     assert_equal %w[2026-11 2026-12 2027-01], compra(first_period: "2026-11", installments_count: 3).periodos
   end
