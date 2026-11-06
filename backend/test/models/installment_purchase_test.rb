@@ -10,6 +10,12 @@ class InstallmentPurchaseTest < ActiveSupport::TestCase
     assert_equal BigDecimal("333.33"), compra(total_amount: 1000, installments_count: 3).monto_por_cuota
   end
 
+  test "interest_rate no puede ser negativo" do
+    c = compra(interest_rate: -1, description: "x")
+    c.valid?
+    assert c.errors.key?(:interest_rate)
+  end
+
   test "periodos lista un periodo por cuota, cruzando de anio" do
     assert_equal %w[2026-11 2026-12 2027-01], compra(first_period: "2026-11", installments_count: 3).periodos
   end
