@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_130000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -102,12 +102,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
   end
 
   create_table "installment_purchases", force: :cascade do |t|
+    t.decimal "card_monthly_fee", precision: 10, scale: 2, default: "0.0", null: false
     t.integer "category_id", null: false
     t.datetime "created_at", null: false
     t.string "description"
     t.integer "family_group_id", null: false
     t.string "first_period"
     t.integer "installments_count"
+    t.decimal "interest_rate", precision: 5, scale: 2, default: "0.0", null: false
     t.decimal "total_amount", precision: 10, scale: 2
     t.datetime "updated_at", null: false
     t.integer "vendor_id"

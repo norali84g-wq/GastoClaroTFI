@@ -218,6 +218,8 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `description` | string | No | qué se compró |
 | `total_amount` | string decimal | No | monto total de la compra |
 | `installments_count` | integer | No | cantidad de cuotas, de 1 a 48 |
+| `interest_rate` | string decimal | No | tasa de interés de la compra en %, de 0 a 100 (`0` = sin interés) |
+| `card_monthly_fee` | string decimal | No | mantenimiento mensual de la tarjeta (`0` = no se suma) |
 | `first_period` | string `YYYY-MM` | No | mes de la primera cuota |
 | `category_id` | integer | No | categoría |
 | `vendor_id` | integer | **Sí** | comercio, si se informó |
@@ -924,6 +926,8 @@ Protegido.
 | `description` | string | Sí | no puede estar vacío |
 | `total_amount` | number | Sí | mayor a 0 |
 | `installments_count` | integer | Sí | entero de 1 a 48 |
+| `interest_rate` | decimal | No | % de interés, de 0 a 100 (por defecto `0`) |
+| `card_monthly_fee` | decimal | No | mantenimiento mensual de la tarjeta, mayor o igual a 0 (por defecto `0`) |
 | `first_period` | string `YYYY-MM` | Sí | mes válido, por ejemplo `2026-11` |
 | `category_id` | integer | Sí | tiene que existir |
 | `vendor_id` | integer | No | si se envía, tiene que existir |
