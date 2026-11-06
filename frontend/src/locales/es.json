@@ -1,0 +1,612 @@
+{
+  "app": {
+    "name": "GastoClaro"
+  },
+  "nav": {
+    "label": "Navegación principal",
+    "skipToContent": "Saltar al contenido",
+    "dashboard": "Inicio",
+    "savingsGoals": "Metas de ahorro",
+    "installments": "Cuotas",
+    "login": "Iniciar sesión",
+    "register": "Crear cuenta",
+    "logout": "Cerrar sesión",
+    "incomes": "Ingresos",
+    "shoppingList": "Gastos fijos",
+    "categories": "Categorías",
+    "savings": "Ahorro",
+    "expenses": "Consumos",
+    "users": "Usuarios",
+    "groups": {
+      "general": "General",
+      "movements": "Movimientos",
+      "planning": "Planificación",
+      "admin": "Administración"
+    },
+    "statistics": "Estadísticas"
+  },
+  "auth": {
+    "user": "Usuario",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordConfirmation": "Repetir contraseña",
+    "passwordHint": "Al menos {{count}} caracteres.",
+    "sessionExpired": "Tu sesión venció. Iniciá sesión de nuevo."
+  },
+  "validation": {
+    "required": "Completá este campo.",
+    "email": "Ingresá un correo electrónico válido.",
+    "passwordMinLength": "Tiene que tener al menos {{count}} caracteres.",
+    "passwordMismatch": "Las contraseñas no coinciden.",
+    "date": "Ingresá una fecha válida.",
+    "amount": "Ingresá un número sin separador de miles, con hasta {{count}} decimales.",
+    "amountPositive": "El monto tiene que ser mayor a {{min}}.",
+    "dateFuture": "La fecha no puede ser posterior a hoy.",
+    "period": "Ingresá un mes con el formato AAAA-MM.",
+    "installmentsCount": "Ingresá un número entero de {{min}} a {{max}}.",
+    "itemQuantity": "Ingresá un número entero de al menos {{min}}. Para fracciones, usá gramos."
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "submit": "Ingresar",
+    "submitting": "Ingresando…",
+    "noAccount": "¿No tenés cuenta?",
+    "goToRegister": "Creá una"
+  },
+  "register": {
+    "title": "Crear cuenta",
+    "submit": "Registrarme",
+    "submitting": "Creando tu cuenta…",
+    "hasAccount": "¿Ya tenés cuenta?",
+    "goToLogin": "Iniciá sesión"
+  },
+  "dashboard": {
+    "title": "Mi resumen",
+    "summary": {
+      "title": "Resumen del mes",
+      "loading": "Cargando el resumen…",
+      "loadError": "No pudimos cargar el resumen del mes.",
+      "income": "Ingresos",
+      "consumption": "Consumo",
+      "savings": "Ahorro",
+      "savingsGoal": "Meta de ahorro: {{percentage}} de los ingresos",
+      "emptyTitle": "Todavía no hay movimientos en {{period}}",
+      "emptyDescription": "Cuando cargues ingresos o gastos de este mes, vas a ver el resumen acá.",
+      "byCategory": {
+        "title": "Consumo por categoría",
+        "share": "Parte del consumo",
+        "empty": "Todavía no hay gastos en {{period}}.",
+        "planned": "Planificado",
+        "progress": "Avance del plan",
+        "noPlan": "Sin plan",
+        "progressText": "{{percentage}} · {{status}}",
+        "status": {
+          "ok": "Dentro de lo planificado",
+          "near": "Cerca del monto planificado",
+          "over": "Superaste lo planificado"
+        }
+      },
+      "monthly": {
+        "title": "Últimos 6 meses",
+        "hint": "El ahorro acumulado suma el de estos 6 meses, no el de toda la historia.",
+        "month": "Mes",
+        "accumulated": "Ahorro acumulado"
+      },
+      "ofIncome": "{{percentage}} de tus ingresos",
+      "incomeContext": "Total del mes"
+    },
+    "greeting": "Hola, {{name}}",
+    "greetingSubtitle": "Este es tu resumen financiero de este mes.",
+    "donut": {
+      "title": "Dónde se va la plata",
+      "others": "Otras categorías",
+      "center": "Consumo del mes",
+      "label": "Consumo por categoría: {{items}}"
+    },
+    "chart": {
+      "title": "Evolución de los últimos 6 meses",
+      "label": "Ingresos, consumo y ahorro de los últimos 6 meses",
+      "showTable": "Ver el detalle en una tabla"
+    },
+    "goals": {
+      "title": "Tus metas de ahorro",
+      "seeAll": "Ver todas las metas",
+      "saved": "Ahorrado",
+      "target": "Objetivo",
+      "missing": "Faltan {{amount}}",
+      "completed": "¡Meta cumplida!",
+      "progress": "{{percentage}} completado"
+    },
+    "ring": {
+      "title": "Tu ahorro, en camino",
+      "goal": "Meta: {{name}}",
+      "see": "Ver metas"
+    },
+    "advice": {
+      "title": "Consejo de GastoClaro",
+      "badge": {
+        "success": "¡Vas muy bien!",
+        "warning": "Atención",
+        "alert": "Ojo con el plan",
+        "info": "Para tener en cuenta"
+      },
+      "over": "Superaste lo planificado en {{categories}}. Identificá qué gastos hicieron que te pasaras y volvé al plan.",
+      "near": "Estás cerca del monto planificado en {{categories}}. Con un poco de atención llegás bien a fin de mes.",
+      "highConsumption": "Tu consumo ya es el {{percentage}} de tus ingresos. Revisá qué categorías concentran la mayor parte de tus gastos.",
+      "goodSavings": "Ahorraste {{amount}} este mes ({{percentage}} de tus ingresos). Mantené la constancia: tu progreso también cuenta.",
+      "noGoals": "Todavía no tenés metas de ahorro. Elegí un objetivo que te motive y comenzá a planificarlo.",
+      "saving": "Este mes ahorraste {{amount}}. Pequeños hábitos, grandes logros.",
+      "empty": "Cargá tus movimientos para obtener una visión más clara de tus finanzas."
+    },
+    "tipCard": {
+      "title": "Un consejo para vos",
+      "phrase": "Tu dinero, tus decisiones, tus proyectos.",
+      "items": [
+        "No necesitás ganar más para empezar a organizarte. Necesitás saber dónde va tu dinero.",
+        "Pequeños ahorros sostenidos pueden convertirse en grandes oportunidades.",
+        "Antes de comprar, preguntate: ¿lo necesito, lo quiero o puedo esperar?",
+        "Registrar tus gastos es el primer paso para tomar mejores decisiones.",
+        "La constancia vale más que un ahorro extraordinario de vez en cuando.",
+        "Ahorrar no es dejar de disfrutar, es elegir cómo querés disfrutar.",
+        "Pagate primero: reservá una parte de tus ingresos antes de comenzar a gastar.",
+        "Los pequeños gastos también cuentan. Revisalos antes de que se acumulen.",
+        "Esperar 24 horas antes de una compra impulsiva puede ayudarte a decidir mejor.",
+        "Antes de financiarte, calculá cuánto terminarás pagando.",
+        "Cada peso que ahorrás te acerca un poquito más a tus proyectos.",
+        "No compares tu progreso con el de otras personas. Cada economía tiene su propio ritmo."
+      ]
+    },
+    "trend": {
+      "up": "{{amount}} más que el mes pasado",
+      "down": "{{amount}} menos que el mes pasado",
+      "same": "Igual que el mes pasado"
+    }
+  },
+  "savings": {
+    "title": "Mi ahorro",
+    "note": "El ahorro acumulado suma mes a mes desde tu primer movimiento.",
+    "goalPercentage": "Meta de ahorro configurada: {{percentage}} de los ingresos",
+    "goalsLink": "Ver y editar mis metas de ahorro",
+    "loading": "Cargando el ahorro…",
+    "loadError": "No pudimos cargar tu ahorro.",
+    "emptyTitle": "Todavía no hay movimientos",
+    "emptyDescription": "Cuando cargues ingresos o gastos, vas a ver acá tu ahorro mes a mes.",
+    "total": "Total {{year}}",
+    "fields": {
+      "month": "Mes",
+      "income": "Ingresos",
+      "consumption": "Consumo",
+      "savings": "Ahorro",
+      "accumulated": "Acumulado"
+    },
+    "charts": {
+      "monthly": "Ahorro de cada mes",
+      "accumulated": "Ahorro acumulado"
+    }
+  },
+  "savingsGoals": {
+    "title": "Mis metas de ahorro",
+    "fields": {
+      "name": "Nombre",
+      "targetAmount": "Monto objetivo",
+      "savedAmount": "Ahorrado hasta ahora",
+      "deadline": "Fecha límite",
+      "progress": "Avance",
+      "actions": "Acciones"
+    },
+    "list": {
+      "title": "Metas",
+      "caption": "Metas de ahorro, de la más reciente a la más antigua",
+      "loading": "Cargando metas…",
+      "loadError": "No pudimos cargar tus metas de ahorro.",
+      "emptyTitle": "Todavía no tenés metas de ahorro",
+      "emptyDescription": "Creá una y vas a ver tu avance acá.",
+      "emptyAction": "Crear una meta",
+      "noDeadline": "Sin fecha límite",
+      "edit": "Editar",
+      "editLabel": "Editar la meta {{name}}",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar la meta {{name}}",
+      "confirmDelete": "¿Borrar la meta {{name}}?",
+      "confirmYes": "Sí, borrar"
+    },
+    "form": {
+      "createTitle": "Nueva meta",
+      "editTitle": "Editar meta",
+      "amountHint": "Sin separador de miles y con hasta {{count}} decimales. Por ejemplo: 800000,50",
+      "savedHint": "Si lo dejás vacío vale 0. Para cargar un aporte, editá la meta y sumalo acá.",
+      "deadlineHint": "Opcional.",
+      "create": "Guardar meta",
+      "save": "Guardar cambios",
+      "cancel": "Cancelar edición",
+      "submitting": "Guardando…"
+    },
+    "messages": {
+      "created": "Meta guardada.",
+      "updated": "Meta actualizada.",
+      "deleted": "Meta borrada.",
+      "deleteError": "No pudimos borrar la meta."
+    }
+  },
+  "expenses": {
+    "fields": {
+      "date": "Fecha",
+      "category": "Categoría",
+      "amount": "Monto",
+      "description": "Descripción",
+      "isFixed": "Gasto fijo",
+      "purchaseChannel": "Canal de compra",
+      "items": "Ítems",
+      "itemName": "Nombre",
+      "itemQuantity": "Cantidad",
+      "itemUnit": "Unidad",
+      "itemUnitPrice": "Precio unitario"
+    },
+    "channels": {
+      "presencial": "Presencial",
+      "delivery": "Delivery",
+      "retiro": "Retiro en el local"
+    },
+    "units": {
+      "unidad": "Unidades",
+      "kg": "Kilos (kg)",
+      "g": "Gramos (g)"
+    },
+    "missing": "Ese gasto ya no existe o no es tuyo. Actualizamos el listado.",
+    "filter": {
+      "label": "Mes",
+      "placeholder": "AAAA-MM",
+      "invalid": "Ingresá un mes con el formato AAAA-MM."
+    },
+    "list": {
+      "title": "Gastos del mes",
+      "caption": "Gastos de {{period}}",
+      "loading": "Cargando gastos…",
+      "loadError": "No pudimos cargar tus gastos.",
+      "fixed": "Fijo",
+      "noDescription": "Sin descripción",
+      "noChannel": "Sin especificar",
+      "emptyTitle": "Todavía no cargaste gastos en {{period}}",
+      "emptyDescription": "Cargá uno y lo vas a ver acá.",
+      "emptyAction": "Cargar un gasto",
+      "actions": "Acciones",
+      "namedExpense": "«{{description}}» del {{date}}",
+      "unnamedExpense": "el gasto del {{date}}",
+      "edit": "Editar",
+      "editLabel": "Editar {{name}}",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar {{name}}",
+      "deleteQuestion": "¿Borrar {{name}}?",
+      "deleteConfirm": "Sí, borrar",
+      "deleteError": "No pudimos borrar el gasto.",
+      "deleted": "Gasto borrado."
+    },
+    "form": {
+      "title": "Nuevo gasto",
+      "editTitle": "Editar gasto",
+      "categoryPlaceholder": "Elegí una categoría",
+      "noCategoriesOption": "No hay categorías",
+      "noCategories": "Todavía no hay categorías cargadas, así que no se pueden guardar gastos.",
+      "loadingCategories": "Cargando categorías…",
+      "categoriesError": "No pudimos cargar las categorías.",
+      "amountHint": "Sin separador de miles y con hasta {{count}} decimales. Por ejemplo: 1500,50",
+      "isFixedHint": "Se repite todos los meses, como el alquiler o un servicio.",
+      "channelNone": "Sin especificar",
+      "submit": "Guardar gasto",
+      "update": "Guardar cambios",
+      "submitting": "Guardando…",
+      "success": "Gasto guardado.",
+      "updated": "Cambios guardados.",
+      "amountFromItems": "Es la suma de los ítems; se recalcula al guardar.",
+      "amountWithoutItems": "Quitaste todos los ítems: el gasto va a quedar con este monto.",
+      "itemsHint": "Podés corregir cada ítem o quitarlo. Los cambios se aplican al guardar el gasto.",
+      "item": "Ítem {{number}}",
+      "removeItem": "Quitar",
+      "removeItemLabel": "Quitar «{{name}}»",
+      "itemRemoved": "«{{name}}» se va a quitar al guardar.",
+      "restoreItem": "Deshacer",
+      "restoreItemLabel": "Deshacer: no quitar «{{name}}»"
+    },
+    "title": "Mis consumos"
+  },
+  "installments": {
+    "title": "Compras en cuotas",
+    "fields": {
+      "description": "Descripción",
+      "category": "Tarjeta",
+      "totalAmount": "Monto total",
+      "installmentsCount": "Cantidad de cuotas",
+      "firstPeriod": "Primera cuota",
+      "installmentAmount": "Valor de la cuota",
+      "remainingInstallments": "Cuotas restantes"
+    },
+    "list": {
+      "title": "Mis compras en cuotas",
+      "caption": "Compras en cuotas, de la más reciente a la más antigua",
+      "note": "Las cuotas no se suman al consumo del mes: el resumen de Inicio no cambia.",
+      "loading": "Cargando compras en cuotas…",
+      "loadError": "No pudimos cargar tus compras en cuotas.",
+      "remaining": "{{remaining}} de {{count}}",
+      "unknownCategory": "No disponible",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "editLabel": "Editar «{{description}}»",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar «{{description}}»",
+      "deleteQuestion": "¿Borrar «{{description}}»?",
+      "deleteConfirm": "Sí, borrar",
+      "deleteError": "No pudimos borrar la compra.",
+      "deleted": "Compra borrada.",
+      "emptyTitle": "Todavía no cargaste compras en cuotas",
+      "emptyDescription": "Cargá una y vas a ver acá cuánto vale cada cuota y cuántas faltan.",
+      "emptyAction": "Cargar una compra"
+    },
+    "form": {
+      "title": "Nueva compra en cuotas",
+      "editTitle": "Editar compra en cuotas",
+      "categoryPlaceholder": "Elegí una tarjeta",
+      "noCategoriesOption": "No hay tarjetas",
+      "noCategories": "Todavía no hay tarjetas. Creá una en Categorías y marcala como tarjeta para poder cargar compras en cuotas.",
+      "loadingCategories": "Cargando categorías…",
+      "categoriesError": "No pudimos cargar las categorías.",
+      "amountHint": "Sin separador de miles y con hasta {{count}} decimales. Por ejemplo: 120000,50",
+      "installmentsCountHint": "De {{min}} a {{max}} cuotas.",
+      "firstPeriodPlaceholder": "AAAA-MM",
+      "submit": "Guardar compra",
+      "update": "Guardar cambios",
+      "submitting": "Guardando…",
+      "created": "Compra en cuotas guardada.",
+      "updated": "Cambios guardados."
+    },
+    "summary": {
+      "title": "Por tarjeta",
+      "note": "Lo que pagás por mes en cada categoría (por ejemplo, cada tarjeta) por las compras que todavía tienen cuotas.",
+      "purchases": "Compras",
+      "monthly": "Por mes"
+    },
+    "notIncluded": "Las compras en cuotas no se incluyen en el consumo mensual."
+  },
+  "categories": {
+    "title": "Categorías",
+    "adminOnly": "Solo el administrador puede ver y editar las categorías.",
+    "fields": {
+      "name": "Nombre",
+      "parent": "Categoría principal",
+      "tracksInstallments": "Es una tarjeta (usa compras en cuotas)",
+      "card": "Tarjeta"
+    },
+    "list": {
+      "title": "Categorías cargadas",
+      "caption": "Categorías, por nombre",
+      "note": "Las comparten todos los usuarios: acá van, por ejemplo, alimentos, servicios o tarjetas de crédito, con sus subcategorías (Visa, Mastercard) debajo. Solo se borra una categoría que no tiene gastos, cuotas, gastos fijos ni subcategorías.",
+      "loading": "Cargando categorías…",
+      "loadError": "No pudimos cargar las categorías.",
+      "noParent": "Es principal",
+      "unknownParent": "No disponible",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "editLabel": "Editar «{{name}}»",
+      "emptyTitle": "Todavía no hay categorías",
+      "emptyDescription": "Creá una y la vas a poder elegir en tus gastos.",
+      "emptyAction": "Crear una categoría",
+      "isCard": "Sí",
+      "noCard": "No",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar «{{name}}»",
+      "deleteQuestion": "¿Borrar «{{name}}»?",
+      "deleteConfirm": "Sí, borrar",
+      "deleteError": "No pudimos borrar la categoría.",
+      "deleted": "Categoría borrada."
+    },
+    "form": {
+      "title": "Nueva categoría",
+      "editTitle": "Editar categoría",
+      "parentHint": "Opcional. Si la elegís, esta categoría queda dentro de ella.",
+      "noParent": "Ninguna, es principal",
+      "submit": "Guardar categoría",
+      "update": "Guardar cambios",
+      "submitting": "Guardando…",
+      "created": "Categoría guardada.",
+      "updated": "Cambios guardados.",
+      "tracksInstallmentsHint": "Marcala en tarjetas como Visa o Mastercard: las compras en cuotas se cargan en estas categorías."
+    }
+  },
+  "users": {
+    "title": "Usuarios",
+    "adminOnly": "Solo el administrador puede ver los usuarios.",
+    "note": "Listado de consulta de los usuarios registrados.",
+    "caption": "Usuarios registrados",
+    "loading": "Cargando usuarios…",
+    "loadError": "No pudimos cargar los usuarios.",
+    "emptyTitle": "Todavía no hay usuarios",
+    "noEmail": "Sin correo",
+    "fields": {
+      "user": "Usuario",
+      "email": "Correo electrónico",
+      "role": "Rol"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "user": "Usuario"
+    }
+  },
+  "shoppingList": {
+    "title": "Lista de gastos fijos",
+    "fields": {
+      "name": "Qué se planifica",
+      "category": "Categoría",
+      "period": "Mes",
+      "quantity": "Cantidad",
+      "estimatedUnitPrice": "Precio unitario estimado",
+      "subtotal": "Subtotal"
+    },
+    "list": {
+      "title": "Gastos planificados",
+      "caption": "Gastos planificados, por mes y por nombre",
+      "note": "Lo que planificás acá se compara con lo que consumís en el resumen de Inicio.",
+      "loading": "Cargando la lista de gastos fijos…",
+      "loadError": "No pudimos cargar tu lista de gastos fijos.",
+      "unknownCategory": "No disponible",
+      "noQuantity": "Sin cantidad",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "editLabel": "Editar «{{name}}»",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar «{{name}}»",
+      "deleteQuestion": "¿Borrar «{{name}}»?",
+      "deleteConfirm": "Sí, borrar",
+      "deleteError": "No pudimos borrar el ítem.",
+      "deleted": "Ítem borrado.",
+      "emptyTitle": "Todavía no planificaste gastos fijos",
+      "emptyDescription": "Cargá uno y vas a ver acá cuánto planificaste por mes.",
+      "emptyAction": "Cargar un gasto"
+    },
+    "form": {
+      "title": "Nuevo gasto fijo",
+      "editTitle": "Editar gasto fijo",
+      "categoryPlaceholder": "Elegí una categoría",
+      "noCategoriesOption": "No hay categorías",
+      "noCategories": "Todavía no hay categorías cargadas, así que no se pueden guardar gastos.",
+      "loadingCategories": "Cargando categorías…",
+      "categoriesError": "No pudimos cargar las categorías.",
+      "periodPlaceholder": "AAAA-MM",
+      "quantityHint": "Opcional. Con hasta 2 decimales.",
+      "amountHint": "Sin separador de miles y con hasta {{count}} decimales. Por ejemplo: 1500,50",
+      "submit": "Guardar gasto",
+      "update": "Guardar cambios",
+      "submitting": "Guardando…",
+      "created": "Gasto fijo guardado.",
+      "updated": "Cambios guardados."
+    },
+    "filter": {
+      "label": "Ver un mes",
+      "hint": "Dejalo vacío para ver todos los meses.",
+      "emptyTitle": "No hay gastos fijos en {{period}}"
+    }
+  },
+  "incomes": {
+    "title": "Mis ingresos",
+    "fields": {
+      "date": "Fecha",
+      "amount": "Monto"
+    },
+    "list": {
+      "title": "Ingresos cargados",
+      "caption": "Ingresos cargados, del más reciente al más antiguo",
+      "loading": "Cargando ingresos…",
+      "loadError": "No pudimos cargar tus ingresos.",
+      "emptyTitle": "Todavía no cargaste ingresos",
+      "emptyDescription": "Cargá uno y lo vas a ver acá.",
+      "emptyAction": "Cargar un ingreso",
+      "actions": "Acciones",
+      "incomeName": "el ingreso de {{amount}} del {{date}}",
+      "edit": "Editar",
+      "editLabel": "Editar {{name}}",
+      "delete": "Borrar",
+      "deleteLabel": "Borrar {{name}}",
+      "deleteQuestion": "¿Borrar {{name}}?",
+      "deleteConfirm": "Sí, borrar",
+      "deleteError": "No pudimos borrar el ingreso.",
+      "deleted": "Ingreso borrado."
+    },
+    "form": {
+      "title": "Nuevo ingreso",
+      "amountHint": "Sin separador de miles y con hasta {{count}} decimales. Por ejemplo: 450000,50",
+      "submit": "Guardar ingreso",
+      "submitting": "Guardando…",
+      "success": "Ingreso guardado.",
+      "editTitle": "Editar ingreso",
+      "update": "Guardar cambios",
+      "updated": "Cambios guardados."
+    }
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La dirección que buscás no existe.",
+    "goHome": "Volver al inicio"
+  },
+  "common": {
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "required": "obligatorio"
+  },
+  "errors": {
+    "generic": "Ocurrió un error inesperado. Probá de nuevo.",
+    "network": "No pudimos conectarnos con el servidor. Revisá tu conexión.",
+    "forbidden": "No tenés permiso para hacer esto.",
+    "notFound": "Lo que buscás no existe o ya no está disponible.",
+    "validation": "Revisá los datos ingresados."
+  },
+  "brand": {
+    "tagline": "Tu dinero, en orden.",
+    "motto": "Pequeños hábitos, grandes logros.",
+    "mottoQuote": "“Pequeños hábitos, grandes logros”"
+  },
+  "categoryDetail": {
+    "eyebrow": "Detalle de categoría",
+    "title": "Detalle de categoría",
+    "back": "Volver a Inicio",
+    "filter": "Ver el mes",
+    "loading": "Cargando el detalle…",
+    "loadError": "No pudimos cargar el detalle de la categoría.",
+    "emptyTitle": "No hay gastos ni gastos fijos en {{period}}",
+    "emptyDescription": "Cargá gastos fijos para planificar y gastos para compararlos.",
+    "planned": "Estimado",
+    "real": "Real",
+    "subcategories": {
+      "caption": "Estimado y real por subcategoría",
+      "name": "Subcategoría",
+      "progress": "Avance del plan"
+    },
+    "products": {
+      "caption": "Estimado y real por producto",
+      "name": "Producto",
+      "planned": "Estimado",
+      "real": "Real",
+      "status": "Estado",
+      "noPlan": "No estaba planificado",
+      "notBought": "No se compró",
+      "statuses": {
+        "bought": "Comprado",
+        "unplanned": "Gasto hormiga",
+        "not_bought": "No se compró"
+      }
+    }
+  },
+  "statistics": {
+    "title": "Estadísticas",
+    "loading": "Cargando las estadísticas…",
+    "loadError": "No pudimos cargar las estadísticas.",
+    "year": "Año",
+    "month": "Mes",
+    "allYear": "Todo el año",
+    "chartTitle": "Evolución de {{year}}",
+    "rankings": {
+      "consumption": "Meses de mayor consumo",
+      "savings": "Meses de mayor ahorro",
+      "unplanned": "Meses con más gasto hormiga",
+      "empty": "Todavía no hay datos para mostrar."
+    },
+    "byCategory": {
+      "title": "Consumo por categoría",
+      "empty": "Todavía no hay consumo en este período.",
+      "planned": "planificado {{amount}}",
+      "overBudget": "Se pasó de lo planificado"
+    },
+    "unplanned": {
+      "title": "Gasto hormiga",
+      "note": "Productos que se compraron y no estaban en la lista de gastos fijos del mes.",
+      "total": "Total del período:",
+      "empty": "No hay gasto hormiga en este período.",
+      "byVendor": "Por comercio",
+      "noVendor": "Sin comercio",
+      "caption": "Productos del gasto hormiga",
+      "date": "Fecha",
+      "product": "Producto",
+      "vendor": "Comercio",
+      "subtotal": "Subtotal"
+    }
+  }
+}
