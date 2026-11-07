@@ -649,6 +649,109 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /installment_purchases/monthly_total:
+    get:
+      tags: [Compras en cuotas]
+      summary: Total de un mes
+      description: |
+        Las cuotas que vencen ese mes más el mantenimiento mensual de la
+        tarjeta. El mantenimiento se suma **una sola vez** y solo si ese mes
+        vence al menos una cuota. Cuenta las compras del grupo familiar.
+      operationId: getInstallmentMonthlyTotal
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Mes (AAAA-MM). Si falta, el mes en curso.
+          schema:
+            $ref: "#/components/schemas/Period"
+      responses:
+        "200":
+          description: Cuotas del mes, su suma, el mantenimiento y el total.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: "2026-11"
+                  installments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        description:
+                          type: string
+                        installment_amount:
+                          type: string
+                  installments_total:
+                    type: string
+                  card_monthly_fee:
+                    type: string
+                    description: Es `0` si ese mes no vence ninguna cuota.
+                  total:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /installment_settings:
+    get:
+      tags: [Compras en cuotas]
+      summary: Ver el mantenimiento mensual de la tarjeta
+      description: Valor del grupo familiar. Por defecto es `0`.
+      operationId: getInstallmentSettings
+      responses:
+        "200":
+          description: Mantenimiento mensual actual.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  card_monthly_fee:
+                    type: string
+                    description: Monto fijo en pesos por mes.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Compras en cuotas]
+      summary: Editar el mantenimiento mensual de la tarjeta
+      description: |
+        Monto fijo en pesos que se suma una vez por mes al total de las
+        cuotas. **Si el banco lo cambia, hay que actualizarlo acá** para que
+        los totales sean reales.
+      operationId: updateInstallmentSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                card_monthly_fee:
+                  type: number
+                  minimum: 0
+                  example: 3500
+      responses:
+        "200":
+          description: Mantenimiento actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  card_monthly_fee:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
   /installment_purchases/{id}:
     parameters:
       - $ref: "#/components/parameters/Id"
