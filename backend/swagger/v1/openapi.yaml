@@ -1830,11 +1830,17 @@ components:
         vendor_id:
           type: integer
           nullable: true
+        interest_rate:
+          type: string
+          description: Tasa de interés total de la compra, en % (de 0 a 100; `0` = sin interés).
+        total_with_interest:
+          type: string
+          description: Calculado. `total_amount` con el interés sumado, redondeado a 2 decimales.
         installment_amount:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           readOnly: true
-          description: Calculado. `total_amount / installments_count`, redondeado a 2 decimales.
+          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`).
         remaining_installments:
           type: integer
           readOnly: true
@@ -1858,6 +1864,11 @@ components:
           minimum: 1
           maximum: 48
           example: 3
+        interest_rate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Opcional. Tasa de interés total de la compra, en %. Por defecto `0`.
         first_period:
           $ref: "#/components/schemas/Period"
         category_id:
@@ -1883,6 +1894,11 @@ components:
           minimum: 1
           maximum: 48
           example: 6
+        interest_rate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Opcional. Tasa de interés total de la compra, en %. Por defecto `0`.
         first_period:
           $ref: "#/components/schemas/Period"
         category_id:
