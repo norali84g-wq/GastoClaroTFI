@@ -44,6 +44,6 @@ class Admin::InstallmentPurchasesController < Admin::BaseController
   end
 
   def installment_purchase_params
-    params.require(:installment_purchase).permit(:category_id, :vendor_id, :description, :total_amount, :installments_count, :interest_rate, :card_monthly_fee, :first_period)
+    params.require(:installment_purchase).permit(:category_id, :vendor_id, :description, :total_amount, :installments_count, :interest_rate, :first_period)
   end
 end

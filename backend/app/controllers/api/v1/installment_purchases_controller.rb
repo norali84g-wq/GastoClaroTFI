@@ -32,6 +32,21 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
     head :no_content
   end
 
+  # Total de un mes (`?period=AAAA-MM`, por defecto el actual): las cuotas que vencen ese mes más el
+  # mantenimiento mensual de la tarjeta, que se suma una sola vez. Es del grupo familiar del usuario.
+  def monthly_total
+    period = params[:period].to_s.presence || Date.current.strftime("%Y-%m")
+    unless period.match?(InstallmentMonthlyTotal::PERIOD_FORMAT)
+      return render_error(api_t("invalid_period"), status: :unprocessable_entity, field: "period")
+    end
+
+    family_group = current_user.family_group
+    render json: InstallmentMonthlyTotal.new(
+      period: period, purchases: family_group.installment_purchases,
+      card_monthly_fee: family_group.card_monthly_fee
+    ).as_json
+  end
+
   private
 
   # Solo se puede tocar una compra visible para el usuario: la de su grupo familiar, o cualquiera si
@@ -41,7 +56,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
   end
 
   def installment_purchase_params
-    params.permit(:description, :total_amount, :installments_count, :interest_rate, :card_monthly_fee, :first_period, :category_id, :vendor_id)
+    params.permit(:description, :total_amount, :installments_count, :interest_rate, :first_period, :category_id, :vendor_id)
   end
 
   # Valida todo junto para devolver todos los errores en una sola respuesta. Devuelve true si no hay
@@ -70,11 +85,11 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
       total_amount: purchase.total_amount,
       installments_count: purchase.installments_count,
       interest_rate: purchase.interest_rate,
-      card_monthly_fee: purchase.card_monthly_fee,
       first_period: purchase.first_period,
       category_id: purchase.category_id,
       vendor_id: purchase.vendor_id,
       installment_amount: purchase.monto_por_cuota,
+      total_with_interest: purchase.total_con_interes,
       remaining_installments: purchase.cuotas_restantes
     }
   end

@@ -16,12 +16,6 @@ class InstallmentPurchaseTest < ActiveSupport::TestCase
     assert c.errors.key?(:interest_rate)
   end
 
-  test "card_monthly_fee no puede ser negativo" do
-    c = compra(card_monthly_fee: -1)
-    c.valid?
-    assert c.errors.key?(:card_monthly_fee)
-  end
-
   test "periodos lista un periodo por cuota, cruzando de anio" do
     assert_equal %w[2026-11 2026-12 2027-01], compra(first_period: "2026-11", installments_count: 3).periodos
   end
@@ -70,5 +64,19 @@ class InstallmentPurchaseTest < ActiveSupport::TestCase
     assert_not compra(base.merge(first_period: "09/2026")).valid?
     assert_not compra(base.merge(total_amount: 0)).valid?
     assert_not compra(base.merge(description: "")).valid?
+  end
+
+  test "con interes, el total y la cuota lo incluyen" do
+    c = compra(total_amount: 1000, installments_count: 4, interest_rate: 10)
+
+    assert_equal BigDecimal("1100"), c.total_con_interes
+    assert_equal BigDecimal("275"), c.monto_por_cuota
+  end
+
+  test "sin interes la cuota es el total dividido en cuotas" do
+    c = compra(total_amount: 1000, installments_count: 3)
+
+    assert_equal BigDecimal("1000"), c.total_con_interes
+    assert_equal BigDecimal("333.33"), c.monto_por_cuota
   end
 end
