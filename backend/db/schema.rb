@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -144,6 +144,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "updated_at", null: false
     t.bigint "category_id"
     t.decimal "estimated_unit_price", precision: 10, scale: 2, default: "0.0", null: false
+    t.boolean "purchased", default: false, null: false
     t.index ["category_id"], name: "index_shopping_list_items_on_category_id"
     t.index ["family_group_id"], name: "index_shopping_list_items_on_family_group_id"
   end
