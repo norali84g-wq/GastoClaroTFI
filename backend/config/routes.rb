@@ -55,6 +55,7 @@ Rails.application.routes.draw do
       get "categories", to: "categories#index"
       get "categories/:id/comparison", to: "categories#comparison"
       get "statistics", to: "statistics#show"
+      get "statistics/monthly_comparison", to: "statistics#monthly_comparison"
       post "categories", to: "categories#create"
       patch "categories/:id", to: "categories#update"
       delete "categories/:id", to: "categories#destroy"

@@ -174,6 +174,117 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /statistics/monthly_comparison:
+    get:
+      tags: [Estadísticas]
+      summary: Comparar dos meses
+      description: |
+        Compara los gastos reales de dos meses por categoría y por producto, y
+        separa cuánto de la diferencia se debe al precio y cuánto a la
+        cantidad. **Efecto cantidad** = (cantidad nueva - cantidad vieja) ×
+        precio viejo. **Efecto precio** = (precio nuevo - precio viejo) ×
+        cantidad nueva. Los dos efectos suman la diferencia. Un producto nuevo
+        o que se dejó de comprar cuenta todo como cantidad. Los efectos se
+        calculan solo con los gastos que tienen detalle de productos. El
+        administrador ve los datos de todos.
+      operationId: getMonthlyComparison
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Mes de origen (AAAA-MM). Si falta, el mes anterior a `to`.
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: to
+          in: query
+          required: false
+          description: Mes de destino (AAAA-MM). Si falta, el mes en curso.
+          schema:
+            $ref: "#/components/schemas/Period"
+      responses:
+        "200":
+          description: Diferencia entre los dos meses, de mayor a menor cambio.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from_period:
+                    type: string
+                    example: "2026-10"
+                  to_period:
+                    type: string
+                    example: "2026-11"
+                  from_total:
+                    type: string
+                    description: Total gastado en el mes de origen (decimal en texto).
+                  to_total:
+                    type: string
+                    description: Total gastado en el mes de destino (decimal en texto).
+                  difference:
+                    type: string
+                    description: to_total menos from_total.
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        category:
+                          $ref: "#/components/schemas/CategoryRef"
+                        from_total:
+                          type: string
+                        to_total:
+                          type: string
+                        difference:
+                          type: string
+                        percent_change:
+                          type: number
+                          nullable: true
+                          description: Variación en %. Es nulo si el mes de origen no tiene gastos.
+                        price_effect:
+                          type: string
+                          description: Parte de la diferencia que se debe al precio.
+                        quantity_effect:
+                          type: string
+                          description: Parte de la diferencia que se debe a la cantidad.
+                        products:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: Leche
+                              unit:
+                                type: string
+                                example: unidad
+                              from_quantity:
+                                type: string
+                              to_quantity:
+                                type: string
+                              from_unit_price:
+                                type: string
+                              to_unit_price:
+                                type: string
+                              from_total:
+                                type: string
+                              to_total:
+                                type: string
+                              difference:
+                                type: string
+                              price_effect:
+                                type: string
+                              quantity_effect:
+                                type: string
+                              status:
+                                type: string
+                                enum: [bought, new, stopped]
+                                description: "`new` si no se compró en el mes de origen, `stopped` si no se compró en el de destino."
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
   /statistics:
     get:
       tags: [Estadísticas]
