@@ -44,12 +44,14 @@ Las planillas y los Excel se terminan abandonando, y las apps que circulan son g
 | Categorías | Rubros y subrubros personalizables, clasificados como necesidad, deseo o ahorro/inversión |
 | Gastos | Alta, edición y baja de gastos, con ítems (cantidad y precio unitario), comercio, gasto fijo, canal de compra y foto del ticket |
 | Compras en cuotas | Se carga el total, la cantidad de cuotas y el interés; el sistema calcula cada cuota con interés, la reparte en su mes y muestra las pendientes |
-| Tarjetas de crédito | *(Trabajo futuro)* Costo de mantenimiento mensual e intereses cuando se financia el resumen |
+| Mantenimiento de tarjeta | Monto fijo mensual del grupo, editable, que se suma una sola vez al total del mes de las cuotas. *(Trabajo futuro: intereses cuando se financia el resumen)* |
 | Comercios | Navegación Panel → Categoría → Comercio → ítems, con totales en cada nivel |
 | Ingresos | Registro de ingresos por período |
 | Presupuesto | Presupuesto mensual por ítem y alertas al 80 % y al 100 % |
 | Informes | Totales, % sobre el ingreso, balance Ingreso = Consumo + Ahorro, regla 50/30/20, comparativas y gráficos |
 | Historial de precios | Variación de precio y cantidad por producto, mes a mes y entre comercios |
+| Comparación mensual | Compara dos meses por categoría y producto y separa cuánto subió por precio y cuánto por cantidad |
+| Lista de compras | Ítems planificados por mes con precio estimado, marcados como comprados y copia de los pendientes al mes siguiente |
 | Inflación personal | Cuánto subieron los precios de lo que compra cada usuario, comparado con el IPC |
 | Gastos hormiga | Detección por umbral configurable, con consejos de educación financiera |
 | Metas de ahorro | Monto y fecha objetivo, barra de progreso y mail de felicitación al cumplirlas |
@@ -66,7 +68,7 @@ Las planillas y los Excel se terminan abandonando, y las apps que circulan son g
 | Base de datos | MySQL 8 |
 | Autenticación | bcrypt + JWT (usuario) · sesión (back-office) |
 | Archivos | Active Storage (local en desarrollo, Cloudinary en demo) |
-| Testing | RSpec · Vitest |
+| Testing | Minitest · Vitest |
 | Calidad | RuboCop · Brakeman |
 | Infraestructura | Docker (MySQL local) · Render / Railway (demo) |
 | Gestión | GitHub (código, PRs) · Trello (tareas) |
@@ -86,7 +88,7 @@ GastoClaroTFI/
 
 #### Requisitos
 
-- Ruby 3.3+ y Bundler
+- Ruby 3.4 y Bundler
 - Node.js 20+ y npm
 - Docker (para MySQL) o MySQL 8 instalado
 - Git
@@ -130,9 +132,9 @@ npm run dev                   # http://localhost:5173
 ```bash
 # Backend
 cd backend
-bundle exec rspec
-bundle exec rubocop
-bundle exec brakeman
+bin/rails test
+bin/rubocop
+bin/brakeman
 
 # Frontend
 cd frontend
@@ -252,12 +254,14 @@ Spreadsheets end up abandoned, and the apps available are global: they are not d
 | Categories | Customizable categories and subcategories, classified as need, want or savings/investment |
 | Expenses | Create, edit and delete expenses, with line items (quantity and unit price), store, fixed expense flag, purchase channel and receipt photo |
 | Installment purchases | Enter the total, number of installments and interest; the system computes each installment with interest, assigns it to its month and shows the remaining ones |
-| Credit cards | *(Future work)* Monthly maintenance fee and interest when the statement is financed |
+| Card maintenance fee | Fixed monthly amount per group, editable, added once to the month's installments total. *(Future work: interest when the statement is financed)* |
 | Stores | Drill-down navigation Dashboard → Category → Store → items, with totals at each level |
 | Income | Income records per period |
 | Budget | Monthly budget per item, with alerts at 80% and 100% |
 | Reports | Totals, % of income, Income = Consumption + Savings balance, 50/30/20 rule, comparisons and charts |
 | Price history | Price and quantity changes per product, month over month and across stores |
+| Monthly comparison | Compares two months by category and product and splits the change into price effect and quantity effect |
+| Shopping list | Planned items per month with estimated price, marked as purchased, with pending items copied to the next month |
 | Personal inflation | How much the prices of what each user actually buys went up, compared with the CPI |
 | Ant expenses | Detection by configurable threshold, with financial education tips |
 | Savings goals | Target amount and date, progress bar and congratulation email when reached |
@@ -274,7 +278,7 @@ Spreadsheets end up abandoned, and the apps available are global: they are not d
 | Database | MySQL 8 |
 | Authentication | bcrypt + JWT (users) · session (back-office) |
 | File storage | Active Storage (local in development, Cloudinary for the demo) |
-| Testing | RSpec · Vitest |
+| Testing | Minitest · Vitest |
 | Code quality | RuboCop · Brakeman |
 | Infrastructure | Docker (local MySQL) · Render / Railway (demo) |
 | Project management | GitHub (code, PRs) · Trello (tasks) |
@@ -294,7 +298,7 @@ GastoClaroTFI/
 
 #### Requirements
 
-- Ruby 3.3+ and Bundler
+- Ruby 3.4 and Bundler
 - Node.js 20+ and npm
 - Docker (for MySQL) or MySQL 8 installed locally
 - Git
@@ -338,9 +342,9 @@ npm run dev                   # http://localhost:5173
 ```bash
 # Backend
 cd backend
-bundle exec rspec
-bundle exec rubocop
-bundle exec brakeman
+bin/rails test
+bin/rubocop
+bin/brakeman
 
 # Frontend
 cd frontend

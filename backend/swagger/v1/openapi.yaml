@@ -1752,7 +1752,7 @@ components:
           example: Productos de limpieza
         vendor_id:
           type: integer
-          description: No se usa en el TP2. Si se envía, tiene que existir.
+          description: No se usa. Si se envía, tiene que existir.
         is_fixed:
           type: boolean
           default: false
