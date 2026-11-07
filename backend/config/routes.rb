@@ -53,6 +53,7 @@ Rails.application.routes.draw do
       patch "installment_settings", to: "installment_settings#update"
       get "shopping_list_items", to: "shopping_list_items#index"
       post "shopping_list_items", to: "shopping_list_items#create"
+      post "shopping_list_items/copy", to: "shopping_list_items#copy"
       patch "shopping_list_items/:id", to: "shopping_list_items#update"
       delete "shopping_list_items/:id", to: "shopping_list_items#destroy"
       get "categories", to: "categories#index"

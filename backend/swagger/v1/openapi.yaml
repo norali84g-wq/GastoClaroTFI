@@ -806,6 +806,13 @@ paths:
           description: Trae solo los ítems de ese mes.
           schema:
             $ref: "#/components/schemas/Period"
+        - name: status
+          in: query
+          required: false
+          description: Filtra por estado. `pending` trae los no comprados y `purchased` los comprados. Sin este parámetro trae todos.
+          schema:
+            type: string
+            enum: [pending, purchased]
       responses:
         "200":
           description: Lista de ítems.
@@ -835,6 +842,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ShoppingListItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /shopping_list_items/copy:
+    post:
+      tags: [Gastos fijos]
+      summary: Copiar los ítems pendientes a otro mes
+      description: Copia al mes destino los ítems no comprados del mes origen. Los que ya existen en el mes destino con el mismo nombre se saltean. Devuelve solo los ítems creados.
+      operationId: copyShoppingListItems
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShoppingListItemCopy"
+      responses:
+        "201":
+          description: Ítems creados en el mes destino (lista vacía si no había nada para copiar).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShoppingListItem"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "422":
@@ -1918,7 +1951,7 @@ components:
     # --- Gastos fijos ---
     ShoppingListItem:
       type: object
-      required: [id, name, period, quantity, estimated_unit_price, subtotal, category]
+      required: [id, name, period, quantity, estimated_unit_price, subtotal, purchased, category]
       properties:
         id:
           type: integer
@@ -1942,6 +1975,10 @@ components:
             - $ref: "#/components/schemas/Decimal"
           readOnly: true
           description: Calculado, no se guarda. `quantity × estimated_unit_price` (`0` si no hay cantidad).
+        purchased:
+          type: boolean
+          description: Si ya se compró.
+          example: false
         category:
           $ref: "#/components/schemas/CategoryRef"
     ShoppingListItemInput:
@@ -1966,6 +2003,17 @@ components:
         category_id:
           type: integer
           description: Tiene que existir.
+        purchased:
+          type: boolean
+          description: Opcional. Por defecto `false`.
+    ShoppingListItemCopy:
+      type: object
+      required: [from_period, to_period]
+      properties:
+        from_period:
+          $ref: "#/components/schemas/Period"
+        to_period:
+          $ref: "#/components/schemas/Period"
     ShoppingListItemUpdate:
       type: object
       properties:
@@ -1987,5 +2035,8 @@ components:
         category_id:
           type: integer
           example: 2
+        purchased:
+          type: boolean
+          example: true
       example:
         quantity: 3
