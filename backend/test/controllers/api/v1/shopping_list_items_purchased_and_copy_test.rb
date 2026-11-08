@@ -127,4 +127,103 @@ class Api::V1::ShoppingListItemsPurchasedAndCopyTest < ActionDispatch::Integrati
     assert_response :unprocessable_entity
     assert_equal "to_period", response.parsed_body["errors"].first["field"]
   end
+
+  test "copy con to_period mal formado da 422" do
+    post "/api/v1/shopping_list_items/copy",
+         params: { from_period: "2026-11", to_period: "2026-13" }, headers: headers_for(@user)
+
+    assert_response :unprocessable_entity
+    assert_equal %w[to_period], response.parsed_body["errors"].map { |e| e["field"] }
+  end
+
+  test "marcar purchased vacio da 422 y no cambia el item" do
+    patch "/api/v1/shopping_list_items/#{@leche.id}", params: { purchased: "" }, headers: headers_for(@user)
+
+    assert_response :unprocessable_entity
+    assert_equal "purchased", response.parsed_body["errors"].first["field"]
+    assert @leche.reload.purchased
+  end
+
+  test "marcar purchased null en JSON da 422" do
+    patch "/api/v1/shopping_list_items/#{@arroz.id}",
+          params: { purchased: nil }.to_json,
+          headers: headers_for(@user).merge("Content-Type" => "application/json")
+
+    assert_response :unprocessable_entity
+    assert_equal "purchased", response.parsed_body["errors"].first["field"]
+  end
+
+  test "crear con purchased vacio da 422" do
+    assert_no_difference -> { ShoppingListItem.count } do
+      post "/api/v1/shopping_list_items",
+           params: { name: "Pan", period: "2026-11", estimated_unit_price: 500, category_id: @comida.id, purchased: "" },
+           headers: headers_for(@user)
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal "purchased", response.parsed_body["errors"].first["field"]
+  end
+
+  test "index con status invalido da 422" do
+    get "/api/v1/shopping_list_items", params: { status: "todos" }, headers: headers_for(@user)
+
+    assert_response :unprocessable_entity
+    assert_equal "status", response.parsed_body["errors"].first["field"]
+  end
+
+  test "index combina period y status" do
+    ShoppingListItem.create!(family_group: @familia, category: @comida, name: "Fideos",
+                             period: "2026-12", quantity: 1, estimated_unit_price: 800)
+
+    get "/api/v1/shopping_list_items", params: { period: "2026-12", status: "pending" }, headers: headers_for(@user)
+
+    assert_response :ok
+    assert_equal %w[Fideos], response.parsed_body.map { |i| i["name"] }
+  end
+
+  test "copy conserva categoria, cantidad y precio" do
+    post "/api/v1/shopping_list_items/copy",
+         params: { from_period: "2026-11", to_period: "2026-12" }, headers: headers_for(@user)
+
+    copia = @familia.shopping_list_items.find_by!(period: "2026-12", name: "Arroz")
+    assert_equal @comida.id, copia.category_id
+    assert_equal 2, copia.quantity
+    assert_equal BigDecimal("1500"), copia.estimated_unit_price
+    assert_not copia.purchased
+    assert_equal "2026-11", @arroz.reload.period
+  end
+
+  test "copy saltea los que ya estan en destino aunque cambien mayusculas o espacios" do
+    ShoppingListItem.create!(family_group: @familia, category: @comida, name: "  ARROZ ",
+                             period: "2026-12", quantity: 1, estimated_unit_price: 1)
+
+    assert_no_difference -> { ShoppingListItem.count } do
+      post "/api/v1/shopping_list_items/copy",
+           params: { from_period: "2026-11", to_period: "2026-12" }, headers: headers_for(@user)
+    end
+
+    assert_response :created
+    assert_empty response.parsed_body
+  end
+
+  test "copy no duplica dos pendientes con el mismo nombre en el origen" do
+    ShoppingListItem.create!(family_group: @familia, category: @comida, name: "arroz",
+                             period: "2026-11", quantity: 5, estimated_unit_price: 1)
+
+    assert_difference -> { @familia.shopping_list_items.where(period: "2026-12").count }, 1 do
+      post "/api/v1/shopping_list_items/copy",
+           params: { from_period: "2026-11", to_period: "2026-12" }, headers: headers_for(@user)
+    end
+  end
+
+  test "el admin copia solo los items de su grupo" do
+    admin = User.create!(user: "jefa", password: "password123", family_group: @familia, admin: true)
+
+    post "/api/v1/shopping_list_items/copy",
+         params: { from_period: "2026-11", to_period: "2026-12" }, headers: headers_for(admin)
+
+    assert_response :created
+    assert_equal %w[Arroz], response.parsed_body.map { |i| i["name"] }
+    assert_equal 0, @otra_familia.shopping_list_items.where(period: "2026-12").count
+  end
 end

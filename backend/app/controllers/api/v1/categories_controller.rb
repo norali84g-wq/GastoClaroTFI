@@ -13,7 +13,7 @@ class Api::V1::CategoriesController < Api::V1::BaseController
   # (`?period=AAAA-MM`; si falta, el mes en curso). Cualquier usuario la consulta, con sus datos.
   def comparison
     period = params[:period].presence || Date.current.strftime("%Y-%m")
-    unless period.match?(CategoryComparison::PERIOD_FORMAT)
+    unless Period.valid?(period)
       return render_error(api_t("invalid_period"), status: :unprocessable_entity, field: "period")
     end
 

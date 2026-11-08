@@ -36,7 +36,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
   # mantenimiento mensual de la tarjeta, que se suma una sola vez. Es del grupo familiar del usuario.
   def monthly_total
     period = params[:period].to_s.presence || Date.current.strftime("%Y-%m")
-    unless period.match?(InstallmentMonthlyTotal::PERIOD_FORMAT)
+    unless Period.valid?(period)
       return render_error(api_t("invalid_period"), status: :unprocessable_entity, field: "period")
     end
 

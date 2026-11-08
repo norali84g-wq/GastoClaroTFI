@@ -809,7 +809,7 @@ paths:
         - name: status
           in: query
           required: false
-          description: Filtra por estado. `pending` trae los no comprados y `purchased` los comprados. Sin este parámetro trae todos.
+          description: Filtra por estado. `pending` trae los no comprados y `purchased` los comprados. Sin este parámetro trae todos. Cualquier otro valor da 422 (campo `status`).
           schema:
             type: string
             enum: [pending, purchased]
@@ -824,6 +824,8 @@ paths:
                   $ref: "#/components/schemas/ShoppingListItem"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
     post:
       tags: [Gastos fijos]
       summary: Crear un ítem de la lista de gastos fijos
@@ -851,7 +853,7 @@ paths:
     post:
       tags: [Gastos fijos]
       summary: Copiar los ítems pendientes a otro mes
-      description: Copia al mes destino los ítems no comprados del mes origen. Los que ya existen en el mes destino con el mismo nombre se saltean. Devuelve solo los ítems creados.
+      description: Copia al mes destino los ítems no comprados del mes origen del grupo familiar del usuario (también para el administrador, que acá no toca los de otros grupos). Los que ya existen en el mes destino con el mismo nombre (sin distinguir mayúsculas ni espacios de más) se saltean. Los copiados quedan como no comprados. Devuelve solo los ítems creados. Si un período no tiene formato `AAAA-MM` o son iguales, responde 422.
       operationId: copyShoppingListItems
       requestBody:
         required: true
