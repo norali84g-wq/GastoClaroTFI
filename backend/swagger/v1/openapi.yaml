@@ -686,14 +686,15 @@ paths:
                         description:
                           type: string
                         installment_amount:
-                          type: string
+                          $ref: "#/components/schemas/Decimal"
                   installments_total:
-                    type: string
+                    $ref: "#/components/schemas/Decimal"
                   card_monthly_fee:
-                    type: string
+                    allOf:
+                      - $ref: "#/components/schemas/Decimal"
                     description: Es `0` si ese mes no vence ninguna cuota.
                   total:
-                    type: string
+                    $ref: "#/components/schemas/Decimal"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "422":
@@ -714,7 +715,8 @@ paths:
                 type: object
                 properties:
                   card_monthly_fee:
-                    type: string
+                    allOf:
+                      - $ref: "#/components/schemas/Decimal"
                     description: Monto fijo en pesos por mes.
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -746,7 +748,7 @@ paths:
                 type: object
                 properties:
                   card_monthly_fee:
-                    type: string
+                    $ref: "#/components/schemas/Decimal"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "422":
@@ -1806,7 +1808,7 @@ components:
     # --- Compras en cuotas ---
     InstallmentPurchase:
       type: object
-      required: [id, description, total_amount, installments_count, first_period, category_id, vendor_id, installment_amount, remaining_installments]
+      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, total_with_interest, installment_amount, remaining_installments]
       properties:
         id:
           type: integer
@@ -1831,11 +1833,14 @@ components:
           type: integer
           nullable: true
         interest_rate:
-          type: string
-          description: Tasa de interés total de la compra, en % (de 0 a 100; `0` = sin interés).
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Tasa de interés total de la compra, en % (de 0 a 100; `0` = sin interés). No es una tasa mensual.
         total_with_interest:
-          type: string
-          description: Calculado. `total_amount` con el interés sumado, redondeado a 2 decimales.
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          readOnly: true
+          description: Calculado. `total_amount × (1 + interest_rate / 100)`, redondeado a 2 decimales.
         installment_amount:
           allOf:
             - $ref: "#/components/schemas/Decimal"
