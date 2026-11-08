@@ -4,8 +4,9 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    # Run tests in parallel with specified workers. En Windows no hay fork(), así que corren en un
+    # solo proceso (PARALLEL_WORKERS sigue teniendo prioridad si se define).
+    parallelize(workers: Gem.win_platform? ? 1 : :number_of_processors)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
