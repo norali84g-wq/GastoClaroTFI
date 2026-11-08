@@ -48,6 +48,8 @@ tags:
     description: Ingresos del usuario.
   - name: Metas de ahorro
     description: Metas del grupo familiar. El aporte de ahorro no es consumo.
+  - name: Presupuestos
+    description: Tope de gasto por categoría y mes, y las alertas que se generan al acercarse o pasarse.
   - name: Compras en cuotas
     description: Compras del grupo familiar. Las cuotas no crean consumo.
   - name: Gastos fijos
@@ -731,6 +733,122 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /budgets:
+    get:
+      tags: [Presupuestos]
+      summary: Listar presupuestos
+      description: Presupuestos del usuario, del mes más reciente al más antiguo, con lo gastado, lo que queda y el porcentaje. El administrador ve los de todos.
+      operationId: listBudgets
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Trae solo los presupuestos de ese mes.
+          schema:
+            $ref: "#/components/schemas/Period"
+      responses:
+        "200":
+          description: Lista de presupuestos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    post:
+      tags: [Presupuestos]
+      summary: Crear un presupuesto
+      description: El presupuesto queda a nombre del usuario; cualquier `user_id` enviado se ignora. Solo puede haber uno por categoría y mes. Si ya se gastó de más en ese mes, la alerta se genera al crearlo.
+      operationId: createBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetInput"
+      responses:
+        "201":
+          description: Presupuesto creado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /budgets/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Presupuestos]
+      summary: Editar un presupuesto
+      description: Acepta los mismos campos que al crear, todos opcionales.
+      operationId: updateBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetUpdate"
+      responses:
+        "200":
+          description: Presupuesto actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags: [Presupuestos]
+      summary: Borrar un presupuesto
+      description: También borra sus alertas.
+      operationId: deleteBudget
+      responses:
+        "204":
+          description: Presupuesto borrado. Sin cuerpo.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /budget_alerts:
+    get:
+      tags: [Presupuestos]
+      summary: Listar alertas de presupuesto
+      description: Alertas de los presupuestos del usuario, de la más reciente a la más antigua. Cada presupuesto avisa una vez al llegar al 80 % y otra al llegar al 100 %. El administrador ve las de todos.
+      operationId: listBudgetAlerts
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Trae solo las alertas de los presupuestos de ese mes.
+          schema:
+            $ref: "#/components/schemas/Period"
+      responses:
+        "200":
+          description: Lista de alertas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BudgetAlertDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /installment_purchases:
     get:
@@ -1962,6 +2080,137 @@ components:
           example: "2027-03-01"
       example:
         saved_amount: 500
+
+    # --- Presupuestos ---
+    FinancialTipRef:
+      type: object
+      nullable: true
+      required: [id, content]
+      properties:
+        id:
+          type: integer
+          example: 3
+        content:
+          type: string
+          example: Planificá las compras de la semana antes de salir.
+    Budget:
+      type: object
+      required: [id, period, amount, spent, remaining, percentage, user, category, alerts]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        period:
+          $ref: "#/components/schemas/Period"
+        amount:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Tope de gasto del mes.
+          example: "200000.0"
+        spent:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Calculado, no se guarda. Gastos del usuario en el mes, en la categoría y en sus subcategorías.
+          example: "170000.0"
+        remaining:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Calculado. `amount - spent`. Es negativo si se pasó.
+          example: "30000.0"
+        percentage:
+          type: integer
+          readOnly: true
+          description: Calculado. `spent / amount × 100`, redondeado. Puede superar `100`.
+          example: 85
+        user:
+          $ref: "#/components/schemas/UserRef"
+        category:
+          $ref: "#/components/schemas/CategoryRef"
+        alerts:
+          type: array
+          description: Alertas ya generadas, de menor a mayor porcentaje.
+          items:
+            $ref: "#/components/schemas/BudgetAlert"
+    BudgetInput:
+      type: object
+      required: [category_id, period, amount]
+      properties:
+        category_id:
+          type: integer
+          description: Tiene que existir.
+          example: 1
+        period:
+          $ref: "#/components/schemas/Period"
+        amount:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          example: 200000
+    BudgetUpdate:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        period:
+          $ref: "#/components/schemas/Period"
+        amount:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          example: 250000
+      example:
+        amount: 250000
+    BudgetAlert:
+      type: object
+      required: [id, threshold_percentage, triggered_at, financial_tip]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        threshold_percentage:
+          type: integer
+          enum: [80, 100]
+          description: Porcentaje del presupuesto que se alcanzó.
+          example: 80
+        triggered_at:
+          type: string
+          format: date-time
+          description: Cuándo se generó la alerta.
+        financial_tip:
+          $ref: "#/components/schemas/FinancialTipRef"
+    BudgetAlertDetail:
+      type: object
+      required: [id, threshold_percentage, triggered_at, budget, financial_tip]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        threshold_percentage:
+          type: integer
+          enum: [80, 100]
+          example: 80
+        triggered_at:
+          type: string
+          format: date-time
+        budget:
+          type: object
+          required: [id, period, amount, category]
+          properties:
+            id:
+              type: integer
+              example: 1
+            period:
+              $ref: "#/components/schemas/Period"
+            amount:
+              $ref: "#/components/schemas/Decimal"
+            category:
+              $ref: "#/components/schemas/CategoryRef"
+        financial_tip:
+          $ref: "#/components/schemas/FinancialTipRef"
 
     # --- Compras en cuotas ---
     InstallmentPurchase:

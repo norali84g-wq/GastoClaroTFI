@@ -3,6 +3,7 @@ class Category < ApplicationRecord
   has_many :subcategories, class_name: "Category", foreign_key: :parent_id, dependent: :nullify
   has_many :expenses
   has_many :installment_purchases, dependent: :destroy
+  has_many :budgets, dependent: :destroy
 
   validates :name, presence: true
   validates :parent, presence: true, if: -> { parent_id.present? }

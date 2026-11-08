@@ -119,6 +119,16 @@ El `404` de cualquier endpoint con `:id` responde:
 | POST | `/savings_goals` | Sí | cualquier usuario | existe |
 | PATCH | `/savings_goals/:id` | Sí | mismo grupo familiar o admin | existe |
 | DELETE | `/savings_goals/:id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/budgets` | Sí | cualquier usuario | existe |
+| POST | `/budgets` | Sí | cualquier usuario | existe |
+| PATCH | `/budgets/:id` | Sí | dueño del presupuesto o admin | existe |
+| DELETE | `/budgets/:id` | Sí | dueño del presupuesto o admin | existe |
+| GET | `/budget_alerts` | Sí | cualquier usuario | existe |
+| GET | `/budgets` | Sí | cualquier usuario | existe |
+| POST | `/budgets` | Sí | cualquier usuario | existe |
+| PATCH | `/budgets/:id` | Sí | dueño del presupuesto o admin | existe |
+| DELETE | `/budgets/:id` | Sí | dueño del presupuesto o admin | existe |
+| GET | `/budget_alerts` | Sí | cualquier usuario | existe |
 | GET | `/installment_purchases` | Sí | cualquier usuario | existe |
 | POST | `/installment_purchases` | Sí | cualquier usuario | existe |
 | PATCH | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
@@ -970,6 +980,232 @@ curl -X DELETE http://localhost:3000/api/v1/savings_goals/<GOAL_ID> -H "Authoriz
 ```
 
 `204`, sin cuerpo. `404` si no existe o es de otro grupo.
+
+---
+
+## Presupuestos
+
+Un presupuesto es el tope de gasto de **un usuario** para **una categoría** en **un mes**. Solo puede haber uno por usuario, categoría y mes. Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`.
+
+Lo gastado cuenta los gastos del usuario en ese mes, en la categoría y en sus subcategorías. Cuando lo gastado llega al **80 %** y al **100 %** del presupuesto se genera una alerta, una sola vez por porcentaje. Si hay consejos financieros para alertas, la alerta lleva uno. Las alertas se generan al guardar un gasto, o al crear o editar un presupuesto que ya está superado.
+
+### Presupuesto
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `period` | string `YYYY-MM` | No | mes del presupuesto |
+| `amount` | string decimal | No | tope de gasto |
+| `spent` | string decimal | No | **calculado**: gastado en el mes en la categoría y sus subcategorías |
+| `remaining` | string decimal | No | **calculado**: `amount - spent`; negativo si se pasó |
+| `percentage` | integer | No | **calculado**: `spent / amount × 100`, redondeado. Puede superar `100` |
+| `user` | objeto `{ id, user }` | No | dueño |
+| `category` | objeto `{ id, name }` | No | categoría |
+| `alerts` | lista | No | alertas ya generadas: `id`, `threshold_percentage` (`80` o `100`), `triggered_at`, `financial_tip` (`{ id, content }` o `null`) |
+
+### `GET /budgets`
+
+Protegido. Lista los presupuestos, del mes más reciente al más antiguo. `?period=YYYY-MM` trae solo los de ese mes.
+
+```bash
+curl "http://localhost:3000/api/v1/budgets?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Presupuesto**):
+
+```json
+[
+  {
+    "id": 1, "period": "2026-11", "amount": "200000.0", "spent": "170000.0", "remaining": "30000.0", "percentage": 85,
+    "user": { "id": 2, "user": "demo" }, "category": { "id": 1, "name": "Comida" },
+    "alerts": [
+      { "id": 1, "threshold_percentage": 80, "triggered_at": "2026-11-18T15:02:11.000Z",
+        "financial_tip": { "id": 3, "content": "Planificá las compras de la semana antes de salir." } }
+    ]
+  }
+]
+```
+
+`422` si `period` no tiene formato `YYYY-MM`.
+
+### `POST /budgets`
+
+Protegido. El presupuesto queda a nombre del usuario; cualquier `user_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `category_id` | integer | Sí | tiene que existir |
+| `period` | string `YYYY-MM` | Sí | formato `YYYY-MM` |
+| `amount` | number | Sí | mayor a 0 |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/budgets \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"category_id":1,"period":"2026-11","amount":200000}'
+```
+
+`201`: el presupuesto creado, con la forma **Presupuesto**. `422` con datos inválidos o si ya hay un presupuesto de esa categoría en ese mes:
+
+```json
+{ "errors": [ { "field": "category_id", "message": "ya tiene un presupuesto en ese mes" } ] }
+```
+
+### `PATCH /budgets/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/budgets/<BUDGET_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"amount":250000}'
+```
+
+`200`: el presupuesto actualizado. `404` si no existe o es de otro usuario. `422` si hay datos inválidos.
+
+### `DELETE /budgets/:id`
+
+Protegido. También borra las alertas del presupuesto.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/budgets/<BUDGET_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o es de otro usuario.
+
+### `GET /budget_alerts`
+
+Protegido. Lista las alertas de los presupuestos del usuario, de la más reciente a la más antigua. `?period=YYYY-MM` trae solo las de los presupuestos de ese mes.
+
+```bash
+curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+[
+  {
+    "id": 1, "threshold_percentage": 80, "triggered_at": "2026-11-18T15:02:11.000Z",
+    "budget": { "id": 1, "period": "2026-11", "amount": "200000.0", "category": { "id": 1, "name": "Comida" } },
+    "financial_tip": { "id": 3, "content": "Planificá las compras de la semana antes de salir." }
+  }
+]
+```
+
+`422` si `period` no tiene formato `YYYY-MM`.
+
+---
+
+## Presupuestos
+
+Un presupuesto es el tope de gasto de **un usuario** para **una categoría** en **un mes**. Solo puede haber uno por usuario, categoría y mes. Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`.
+
+Lo gastado cuenta los gastos del usuario en ese mes, en la categoría y en sus subcategorías. Cuando lo gastado llega al **80 %** y al **100 %** del presupuesto se genera una alerta, una sola vez por porcentaje. Si hay consejos financieros para alertas, la alerta lleva uno. Las alertas se generan al guardar un gasto, o al crear o editar un presupuesto que ya está superado.
+
+### Presupuesto
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `period` | string `YYYY-MM` | No | mes del presupuesto |
+| `amount` | string decimal | No | tope de gasto |
+| `spent` | string decimal | No | **calculado**: gastado en el mes en la categoría y sus subcategorías |
+| `remaining` | string decimal | No | **calculado**: `amount - spent`; negativo si se pasó |
+| `percentage` | integer | No | **calculado**: `spent / amount × 100`, redondeado. Puede superar `100` |
+| `user` | objeto `{ id, user }` | No | dueño |
+| `category` | objeto `{ id, name }` | No | categoría |
+| `alerts` | lista | No | alertas ya generadas: `id`, `threshold_percentage` (`80` o `100`), `triggered_at`, `financial_tip` (`{ id, content }` o `null`) |
+
+### `GET /budgets`
+
+Protegido. Lista los presupuestos, del mes más reciente al más antiguo. `?period=YYYY-MM` trae solo los de ese mes.
+
+```bash
+curl "http://localhost:3000/api/v1/budgets?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Presupuesto**):
+
+```json
+[
+  {
+    "id": 1, "period": "2026-11", "amount": "200000.0", "spent": "170000.0", "remaining": "30000.0", "percentage": 85,
+    "user": { "id": 2, "user": "demo" }, "category": { "id": 1, "name": "Comida" },
+    "alerts": [
+      { "id": 1, "threshold_percentage": 80, "triggered_at": "2026-11-18T15:02:11.000Z",
+        "financial_tip": { "id": 3, "content": "Planificá las compras de la semana antes de salir." } }
+    ]
+  }
+]
+```
+
+`422` si `period` no tiene formato `YYYY-MM`.
+
+### `POST /budgets`
+
+Protegido. El presupuesto queda a nombre del usuario; cualquier `user_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `category_id` | integer | Sí | tiene que existir |
+| `period` | string `YYYY-MM` | Sí | formato `YYYY-MM` |
+| `amount` | number | Sí | mayor a 0 |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/budgets \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"category_id":1,"period":"2026-11","amount":200000}'
+```
+
+`201`: el presupuesto creado, con la forma **Presupuesto**. `422` con datos inválidos o si ya hay un presupuesto de esa categoría en ese mes:
+
+```json
+{ "errors": [ { "field": "category_id", "message": "ya tiene un presupuesto en ese mes" } ] }
+```
+
+### `PATCH /budgets/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/budgets/<BUDGET_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"amount":250000}'
+```
+
+`200`: el presupuesto actualizado. `404` si no existe o es de otro usuario. `422` si hay datos inválidos.
+
+### `DELETE /budgets/:id`
+
+Protegido. También borra las alertas del presupuesto.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/budgets/<BUDGET_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o es de otro usuario.
+
+### `GET /budget_alerts`
+
+Protegido. Lista las alertas de los presupuestos del usuario, de la más reciente a la más antigua. `?period=YYYY-MM` trae solo las de los presupuestos de ese mes.
+
+```bash
+curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+[
+  {
+    "id": 1, "threshold_percentage": 80, "triggered_at": "2026-11-18T15:02:11.000Z",
+    "budget": { "id": 1, "period": "2026-11", "amount": "200000.0", "category": { "id": 1, "name": "Comida" } },
+    "financial_tip": { "id": 3, "content": "Planificá las compras de la semana antes de salir." }
+  }
+]
+```
+
+`422` si `period` no tiene formato `YYYY-MM`.
 
 ---
 
