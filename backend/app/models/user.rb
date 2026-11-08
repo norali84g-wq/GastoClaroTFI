@@ -8,7 +8,8 @@ class User < ApplicationRecord
   has_many :incomes, dependent: :destroy
 
   normalizes :user, with: ->(value) { value.to_s.strip.downcase }
-  normalizes :email, with: ->(email) { email.strip.downcase }
+  # Un email vacío se guarda como NULL: el índice único de MySQL acepta varios NULL pero no varios ''.
+  normalizes :email, with: ->(email) { email.strip.downcase.presence }
 
   validates :user, presence: true, uniqueness: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: true, allow_blank: true
