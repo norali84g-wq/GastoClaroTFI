@@ -11,6 +11,28 @@ class UserTest < ActiveSupport::TestCase
     assert_not User.new(user: "c", password: "password123", family_group: @familia, email: "no-es-un-mail").valid?
   end
 
+  test "un email vacio se guarda como nil" do
+    user = User.create!(user: "sin_email", password: "password123", family_group: @familia, email: "  ")
+
+    assert_nil user.reload.email
+  end
+
+  test "se pueden crear varios usuarios sin email" do
+    User.create!(user: "uno", password: "password123", family_group: @familia, email: "")
+
+    assert_nothing_raised do
+      User.create!(user: "dos", password: "password123", family_group: @familia, email: "")
+    end
+  end
+
+  test "no se puede repetir un email cargado" do
+    User.create!(user: "uno", password: "password123", family_group: @familia, email: "a@example.com")
+    repetido = User.new(user: "dos", password: "password123", family_group: @familia, email: "A@example.com")
+
+    assert_not repetido.valid?
+    assert repetido.errors.of_kind?(:email, :taken)
+  end
+
   test "el nombre de usuario se guarda en minusculas" do
     user = User.create!(user: "NicoV", password: "password123", family_group: @familia)
 
