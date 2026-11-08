@@ -3,8 +3,6 @@
 # - si tiene subcategorías, una fila por subcategoría con su estimado y su real;
 # - si no, una fila por producto, con cantidades y precios estimados y reales.
 class CategoryComparison
-  PERIOD_FORMAT = /\A\d{4}-(0[1-9]|1[0-2])\z/
-
   # `expenses` y `shopping_items` son lo que el usuario puede ver (ya filtrado por la API).
   def initialize(category:, period:, expenses:, shopping_items:)
     @category = category

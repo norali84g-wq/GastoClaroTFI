@@ -3,7 +3,6 @@ class Api::V1::ExpensesController < Api::V1::BaseController
   MAX_INDEX_EXPENSES = 100
   # Campo que se informa cuando ?period no tiene el formato YYYY-MM.
   PERIOD_FIELD = "period".freeze
-  PERIOD_FORMAT = /\A\d{4}-(0[1-9]|1[0-2])\z/
   # Campos de un ítem. Al editar, además se acepta el id del ítem existente y _destroy para borrarlo.
   ITEM_FIELDS = %i[name quantity unit unit_price].freeze
   ITEM_EDIT_FIELDS = %i[id _destroy].freeze
@@ -78,7 +77,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
 
   # Devuelve el primer día del mes, o nil si el valor no es un texto con formato YYYY-MM.
   def parse_period(value)
-    return unless value.is_a?(String) && value.match?(PERIOD_FORMAT)
+    return unless Period.valid?(value)
 
     Date.strptime(value, "%Y-%m")
   end

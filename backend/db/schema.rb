@@ -146,6 +146,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_140000) do
     t.datetime "updated_at", null: false
     t.bigint "category_id"
     t.decimal "estimated_unit_price", precision: 10, scale: 2, default: "0.0", null: false
+    t.boolean "purchased", default: false, null: false
     t.index ["category_id"], name: "index_shopping_list_items_on_category_id"
     t.index ["family_group_id"], name: "index_shopping_list_items_on_family_group_id"
   end
