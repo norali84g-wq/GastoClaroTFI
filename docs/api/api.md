@@ -128,6 +128,12 @@ El `404` de cualquier endpoint con `:id` responde:
 | POST | `/installment_purchases` | Sí | cualquier usuario | existe |
 | PATCH | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
 | DELETE | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/installment_purchases/:id/installments` | Sí | mismo grupo familiar o admin | existe |
+| PATCH | `/installment_purchases/:id/installments/:installment_id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/payment_methods` | Sí | cualquier usuario | existe |
+| POST | `/payment_methods` | Sí | cualquier usuario | existe |
+| PATCH | `/payment_methods/:id` | Sí | dueño del medio de pago o admin | existe |
+| DELETE | `/payment_methods/:id` | Sí | dueño del medio de pago o admin | existe |
 | GET | `/installment_purchases/monthly_total` | Sí | cualquier usuario | existe |
 | GET | `/installment_settings` | Sí | cualquier usuario | existe |
 | PATCH | `/installment_settings` | Sí | cualquier usuario | existe |
@@ -1091,6 +1097,95 @@ curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorizati
 
 ---
 
+## Medios de pago
+
+Un medio de pago es una tarjeta (u otro medio) de **un usuario**. Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`. Los gastos (`POST` y `PATCH /expenses`) y las compras en cuotas (`POST` y `PATCH /installment_purchases`) aceptan un `payment_method_id` opcional: tiene que ser un medio de pago del usuario, si no responde `422` con `field` `payment_method_id`.
+
+El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por cada medio de pago que tenga cuotas ese mes, en `GET /installment_purchases/monthly_total`. Las compras sin medio de pago usan el mantenimiento del grupo (`GET /installment_settings`), también una sola vez.
+
+### Medio de pago
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `name` | string | No | cómo se llama (por ejemplo `Visa Galicia`) |
+| `nickname` | string | **Sí** | alias |
+| `issuer` | string | **Sí** | emisor (banco) |
+| `last_four` | string | **Sí** | últimos 4 dígitos |
+| `closing_day` | integer | **Sí** | día del mes en que cierra el resumen (1 a 31) |
+| `due_day` | integer | **Sí** | día del mes en que vence el resumen (1 a 31) |
+| `monthly_fee` | string decimal | No | mantenimiento mensual (`0` si no tiene) |
+| `user` | objeto `{ id, user }` | No | dueño |
+
+### `GET /payment_methods`
+
+Protegido. Lista los medios de pago, ordenados por nombre.
+
+```bash
+curl http://localhost:3000/api/v1/payment_methods -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Medio de pago**):
+
+```json
+[
+  {
+    "id": 1, "name": "Visa Galicia", "nickname": "La del súper", "issuer": "Banco Galicia", "last_four": "4417",
+    "closing_day": 25, "due_day": 5, "monthly_fee": "3500.0", "user": { "id": 2, "user": "demo" }
+  }
+]
+```
+
+### `POST /payment_methods`
+
+Protegido. Queda a nombre del usuario; cualquier `user_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `name` | string | Sí | no puede estar vacío |
+| `nickname` | string | No | |
+| `issuer` | string | No | |
+| `last_four` | string | No | 4 dígitos |
+| `closing_day` | integer | No | de 1 a 31 |
+| `due_day` | integer | No | de 1 a 31 |
+| `monthly_fee` | number | No | mayor o igual a 0. Por defecto `0` |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payment_methods \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"name":"Visa Galicia","last_four":"4417","closing_day":25,"due_day":5,"monthly_fee":3500}'
+```
+
+`201`: el medio de pago creado, con la forma **Medio de pago**. `422` con datos inválidos:
+
+```json
+{ "errors": [ { "field": "last_four", "message": "deben ser 4 dígitos" } ] }
+```
+
+### `PATCH /payment_methods/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/payment_methods/<PAYMENT_METHOD_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"monthly_fee":4000}'
+```
+
+`200`: el medio de pago actualizado. `404` si no existe o es de otro usuario. `422` si hay datos inválidos.
+
+### `DELETE /payment_methods/:id`
+
+Protegido. Los gastos y las compras en cuotas que lo usaban quedan con `payment_method_id` en `null`.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/payment_methods/<PAYMENT_METHOD_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o es de otro usuario.
+
+---
+
 ## Compras en cuotas
 
 Igual que las metas, pertenecen al **grupo familiar** del usuario (el admin ve todas; una compra de otro grupo responde `404`). Las cuotas **no crean consumo**: no cambian el dashboard.
@@ -1229,6 +1324,41 @@ curl -X PATCH http://localhost:3000/api/v1/installment_settings \
 ```
 
 `200`: `{ "card_monthly_fee": "3500.0" }`. `422` si el monto es negativo o no es un número.
+
+### `GET /installment_purchases/:id/installments`
+
+Protegido. Lista las cuotas de una compra, una por mes y en orden. Se generan solas al crear la compra y se vuelven a generar si se cambia el total, la cantidad de cuotas, el interés o el primer mes (las que ya estaban pagadas se conservan).
+
+```bash
+curl http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID>/installments -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+[
+  { "id": 1, "number": 1, "period": "2026-11", "amount": "300.0", "paid": false },
+  { "id": 2, "number": 2, "period": "2026-12", "amount": "300.0", "paid": false }
+]
+```
+
+`404` si la compra no existe o es de otro grupo.
+
+### `PATCH /installment_purchases/:id/installments/:installment_id`
+
+Protegido. Marca una cuota como pagada o no pagada.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `paid` | boolean | Sí | `true` o `false` |
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID>/installments/<INSTALLMENT_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"paid":true}'
+```
+
+`200`: la cuota actualizada, con la misma forma de arriba. `404` si la compra o la cuota no existen o son de otro grupo. `422` con `field` `paid` si falta o no es booleano.
 
 ---
 

@@ -50,6 +50,8 @@ tags:
     description: Metas del grupo familiar. El aporte de ahorro no es consumo.
   - name: Presupuestos
     description: Tope de gasto por categoría y mes, y las alertas que se generan al acercarse o pasarse.
+  - name: Medios de pago
+    description: Tarjetas y otros medios de pago de cada usuario, con su mantenimiento mensual.
   - name: Compras en cuotas
     description: Compras del grupo familiar. Las cuotas no crean consumo.
   - name: Gastos fijos
@@ -887,6 +889,155 @@ paths:
                 $ref: "#/components/schemas/InstallmentPurchase"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /payment_methods:
+    get:
+      tags: [Medios de pago]
+      summary: Listar medios de pago
+      description: Medios de pago del usuario, ordenados por nombre. El administrador ve los de todos.
+      operationId: listPaymentMethods
+      responses:
+        "200":
+          description: Lista de medios de pago.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Medios de pago]
+      summary: Crear un medio de pago
+      description: El medio de pago queda a nombre del usuario; cualquier `user_id` enviado se ignora.
+      operationId: createPaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodInput"
+      responses:
+        "201":
+          description: Medio de pago creado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /payment_methods/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Medios de pago]
+      summary: Editar un medio de pago
+      description: Acepta los mismos campos que al crear, todos opcionales.
+      operationId: updatePaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodUpdate"
+      responses:
+        "200":
+          description: Medio de pago actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags: [Medios de pago]
+      summary: Borrar un medio de pago
+      description: Los gastos y las compras en cuotas que lo usaban quedan sin medio de pago.
+      operationId: deletePaymentMethod
+      responses:
+        "204":
+          description: Medio de pago borrado. Sin cuerpo.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /installment_purchases/{installment_purchase_id}/installments:
+    parameters:
+      - name: installment_purchase_id
+        in: path
+        required: true
+        description: Identificador de la compra en cuotas. Si no existe o es de otro grupo, responde `404`.
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+    get:
+      tags: [Compras en cuotas]
+      summary: Listar las cuotas de una compra
+      description: Una cuota por mes, ordenadas por número, con su monto y si ya se pagó.
+      operationId: listInstallments
+      responses:
+        "200":
+          description: Cuotas de la compra.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Installment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /installment_purchases/{installment_purchase_id}/installments/{id}:
+    parameters:
+      - name: installment_purchase_id
+        in: path
+        required: true
+        description: Identificador de la compra en cuotas.
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Compras en cuotas]
+      summary: Marcar una cuota como pagada o no pagada
+      operationId: updateInstallment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paid]
+              properties:
+                paid:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Cuota actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Installment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
@@ -1806,6 +1957,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/UserRef"
           readOnly: true
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           nullable: true
@@ -1868,6 +2023,10 @@ components:
         description:
           type: string
           example: Productos de limpieza
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           description: Opcional. El front no lo envía; si se envía, tiene que existir.
@@ -1899,6 +2058,10 @@ components:
         description:
           type: string
           example: Compra semanal
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           example: 1
@@ -2212,6 +2375,124 @@ components:
         financial_tip:
           $ref: "#/components/schemas/FinancialTipRef"
 
+    # --- Medios de pago ---
+    PaymentMethod:
+      type: object
+      required: [id, name, nickname, issuer, last_four, closing_day, due_day, monthly_fee, user]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          example: Visa Galicia
+        nickname:
+          type: string
+          nullable: true
+          example: La del súper
+        issuer:
+          type: string
+          nullable: true
+          example: Banco Galicia
+        last_four:
+          type: string
+          nullable: true
+          description: Últimos 4 dígitos de la tarjeta.
+          example: "4417"
+        closing_day:
+          type: integer
+          nullable: true
+          description: Día del mes en que cierra el resumen (1 a 31).
+          example: 25
+        due_day:
+          type: integer
+          nullable: true
+          description: Día del mes en que vence el resumen (1 a 31).
+          example: 5
+        monthly_fee:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Mantenimiento mensual. `0` si no tiene.
+        user:
+          $ref: "#/components/schemas/UserRef"
+    PaymentMethodInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Visa Galicia
+        nickname:
+          type: string
+          example: La del súper
+        issuer:
+          type: string
+          example: Banco Galicia
+        last_four:
+          type: string
+          pattern: '^\d{4}$'
+          example: "4417"
+        closing_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+          example: 25
+        due_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+          example: 5
+        monthly_fee:
+          type: number
+          minimum: 0
+          description: Por defecto `0`.
+          example: 3500
+    PaymentMethodUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        nickname:
+          type: string
+        issuer:
+          type: string
+        last_four:
+          type: string
+          pattern: '^\d{4}$'
+        closing_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        due_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        monthly_fee:
+          type: number
+          minimum: 0
+      example:
+        monthly_fee: 4000
+    Installment:
+      type: object
+      required: [id, number, period, amount, paid]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: integer
+          description: Número de la cuota (1 es la primera).
+          example: 1
+        period:
+          $ref: "#/components/schemas/Period"
+        amount:
+          $ref: "#/components/schemas/Decimal"
+        paid:
+          type: boolean
+          example: false
+
     # --- Compras en cuotas ---
     InstallmentPurchase:
       type: object
@@ -2236,6 +2517,10 @@ components:
         category_id:
           type: integer
           example: 4
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           nullable: true
@@ -2286,6 +2571,10 @@ components:
         category_id:
           type: integer
           description: Tiene que existir.
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           description: Si se envía, tiene que existir.
@@ -2316,6 +2605,10 @@ components:
         category_id:
           type: integer
           example: 4
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
         vendor_id:
           type: integer
           example: 1
