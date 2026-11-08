@@ -649,6 +649,111 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /installment_purchases/monthly_total:
+    get:
+      tags: [Compras en cuotas]
+      summary: Total de un mes
+      description: |
+        Las cuotas que vencen ese mes más el mantenimiento mensual de la
+        tarjeta. El mantenimiento se suma **una sola vez** y solo si ese mes
+        vence al menos una cuota. Cuenta las compras del grupo familiar.
+      operationId: getInstallmentMonthlyTotal
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Mes (AAAA-MM). Si falta, el mes en curso.
+          schema:
+            $ref: "#/components/schemas/Period"
+      responses:
+        "200":
+          description: Cuotas del mes, su suma, el mantenimiento y el total.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: "2026-11"
+                  installments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        description:
+                          type: string
+                        installment_amount:
+                          $ref: "#/components/schemas/Decimal"
+                  installments_total:
+                    $ref: "#/components/schemas/Decimal"
+                  card_monthly_fee:
+                    allOf:
+                      - $ref: "#/components/schemas/Decimal"
+                    description: Es `0` si ese mes no vence ninguna cuota.
+                  total:
+                    $ref: "#/components/schemas/Decimal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /installment_settings:
+    get:
+      tags: [Compras en cuotas]
+      summary: Ver el mantenimiento mensual de la tarjeta
+      description: Valor del grupo familiar. Por defecto es `0`.
+      operationId: getInstallmentSettings
+      responses:
+        "200":
+          description: Mantenimiento mensual actual.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  card_monthly_fee:
+                    allOf:
+                      - $ref: "#/components/schemas/Decimal"
+                    description: Monto fijo en pesos por mes.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Compras en cuotas]
+      summary: Editar el mantenimiento mensual de la tarjeta
+      description: |
+        Monto fijo en pesos que se suma una vez por mes al total de las
+        cuotas. **Si el banco lo cambia, hay que actualizarlo acá** para que
+        los totales sean reales.
+      operationId: updateInstallmentSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                card_monthly_fee:
+                  type: number
+                  minimum: 0
+                  example: 3500
+      responses:
+        "200":
+          description: Mantenimiento actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  card_monthly_fee:
+                    $ref: "#/components/schemas/Decimal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
   /installment_purchases/{id}:
     parameters:
       - $ref: "#/components/parameters/Id"
@@ -1703,7 +1808,7 @@ components:
     # --- Compras en cuotas ---
     InstallmentPurchase:
       type: object
-      required: [id, description, total_amount, installments_count, first_period, category_id, vendor_id, installment_amount, remaining_installments]
+      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, total_with_interest, installment_amount, remaining_installments]
       properties:
         id:
           type: integer
@@ -1727,11 +1832,20 @@ components:
         vendor_id:
           type: integer
           nullable: true
+        interest_rate:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Tasa de interés total de la compra, en % (de 0 a 100; `0` = sin interés). No es una tasa mensual.
+        total_with_interest:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          readOnly: true
+          description: Calculado. `total_amount × (1 + interest_rate / 100)`, redondeado a 2 decimales.
         installment_amount:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           readOnly: true
-          description: Calculado. `total_amount / installments_count`, redondeado a 2 decimales.
+          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`).
         remaining_installments:
           type: integer
           readOnly: true
@@ -1755,6 +1869,11 @@ components:
           minimum: 1
           maximum: 48
           example: 3
+        interest_rate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Opcional. Tasa de interés total de la compra, en %. Por defecto `0`.
         first_period:
           $ref: "#/components/schemas/Period"
         category_id:
@@ -1780,6 +1899,11 @@ components:
           minimum: 1
           maximum: 48
           example: 6
+        interest_rate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Opcional. Tasa de interés total de la compra, en %. Por defecto `0`.
         first_period:
           $ref: "#/components/schemas/Period"
         category_id:

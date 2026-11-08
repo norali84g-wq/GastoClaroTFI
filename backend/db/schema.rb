@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_140000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -82,6 +82,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_110000) do
     t.integer "savings_percentage", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "card_monthly_fee", precision: 10, scale: 2, default: "0.0", null: false
   end
 
   create_table "financial_tips", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -111,6 +112,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_110000) do
     t.string "first_period"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "interest_rate", precision: 5, scale: 2, default: "0.0", null: false
     t.index ["category_id"], name: "index_installment_purchases_on_category_id"
     t.index ["family_group_id"], name: "index_installment_purchases_on_family_group_id"
     t.index ["vendor_id"], name: "index_installment_purchases_on_vendor_id"

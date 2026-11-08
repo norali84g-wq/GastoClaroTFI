@@ -122,6 +122,9 @@ El `404` de cualquier endpoint con `:id` responde:
 | POST | `/installment_purchases` | Sí | cualquier usuario | existe |
 | PATCH | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
 | DELETE | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/installment_purchases/monthly_total` | Sí | cualquier usuario (su grupo familiar) | existe |
+| GET | `/installment_settings` | Sí | cualquier usuario (su grupo familiar) | existe |
+| PATCH | `/installment_settings` | Sí | cualquier usuario (su grupo familiar) | existe |
 | GET | `/shopping_list_items` | Sí | cualquier usuario | existe |
 | POST | `/shopping_list_items` | Sí | cualquier usuario | existe |
 | PATCH | `/shopping_list_items/:id` | Sí | mismo grupo familiar o admin | existe |
@@ -218,10 +221,12 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `description` | string | No | qué se compró |
 | `total_amount` | string decimal | No | monto total de la compra |
 | `installments_count` | integer | No | cantidad de cuotas, de 1 a 48 |
+| `interest_rate` | string decimal | No | tasa de interés **total** de la compra en %, de 0 a 100 (`0` = sin interés). No es una tasa mensual: `10` es un 10% más sobre el total |
 | `first_period` | string `YYYY-MM` | No | mes de la primera cuota |
 | `category_id` | integer | No | categoría |
 | `vendor_id` | integer | **Sí** | comercio, si se informó |
-| `installment_amount` | string decimal | No | **calculado**: `total_amount / installments_count`, redondeado a 2 decimales |
+| `total_with_interest` | string decimal | No | **calculado**: `total_amount × (1 + interest_rate / 100)`, redondeado a 2 decimales |
+| `installment_amount` | string decimal | No | **calculado**: `total_with_interest / installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta (ver `GET /installment_purchases/monthly_total`) |
 | `remaining_installments` | integer | No | **calculado**: cuotas que faltan hasta el mes actual (nunca menos de `0`) |
 
 ---
@@ -909,8 +914,8 @@ curl http://localhost:3000/api/v1/installment_purchases -H "Authorization: Beare
 [
   {
     "id": 1, "description": "Heladera", "total_amount": "1200.0", "installments_count": 12,
-    "first_period": "2026-11", "category_id": 4, "vendor_id": null,
-    "installment_amount": "100.0", "remaining_installments": 11
+    "interest_rate": "0.0", "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+    "installment_amount": "100.0", "total_with_interest": "1200.0", "remaining_installments": 11
   }
 ]
 ```
@@ -924,6 +929,7 @@ Protegido.
 | `description` | string | Sí | no puede estar vacío |
 | `total_amount` | number | Sí | mayor a 0 |
 | `installments_count` | integer | Sí | entero de 1 a 48 |
+| `interest_rate` | decimal | No | % de interés total de la compra, de 0 a 100 (por defecto `0`) |
 | `first_period` | string `YYYY-MM` | Sí | mes válido, por ejemplo `2026-11` |
 | `category_id` | integer | Sí | tiene que existir |
 | `vendor_id` | integer | No | si se envía, tiene que existir |
@@ -931,7 +937,7 @@ Protegido.
 ```bash
 curl -X POST http://localhost:3000/api/v1/installment_purchases \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{"description":"Televisor","total_amount":900,"installments_count":3,"first_period":"2026-11","category_id":<CATEGORY_ID>}'
+  -d '{"description":"Televisor","total_amount":900,"installments_count":3,"interest_rate":20,"first_period":"2026-11","category_id":<CATEGORY_ID>}'
 ```
 
 `201`: la compra creada, con la forma **Compra en cuotas**:
@@ -939,10 +945,12 @@ curl -X POST http://localhost:3000/api/v1/installment_purchases \
 ```json
 {
   "id": 2, "description": "Televisor", "total_amount": "900.0", "installments_count": 3,
-  "first_period": "2026-11", "category_id": 4, "vendor_id": null,
-  "installment_amount": "300.0", "remaining_installments": 2
+  "interest_rate": "20.0", "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+  "installment_amount": "360.0", "total_with_interest": "1080.0", "remaining_installments": 2
 }
 ```
+
+El mantenimiento de la tarjeta **no** se envía acá: es del grupo familiar (ver `/installment_settings`). Si se manda `card_monthly_fee` en este pedido, se ignora.
 
 `422` con datos inválidos (por ejemplo, un `first_period` con un mes que no existe):
 
@@ -962,7 +970,7 @@ curl -X PATCH http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID> \
   -d '{"installments_count":6}'
 ```
 
-`200`: la compra actualizada, con `installment_amount` y `remaining_installments` recalculados. `404` si no existe o es de otro grupo. `422` si hay datos inválidos.
+`200`: la compra actualizada, con `total_with_interest`, `installment_amount` y `remaining_installments` recalculados. `404` si no existe o es de otro grupo. `422` si hay datos inválidos.
 
 ### `DELETE /installment_purchases/:id`
 
@@ -973,6 +981,69 @@ curl -X DELETE http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID> 
 ```
 
 `204`, sin cuerpo. `404` si no existe o es de otro grupo.
+
+### `GET /installment_purchases/monthly_total`
+
+Protegido. Lo que hay que pagar en un mes por las compras en cuotas del grupo familiar del usuario: las cuotas que vencen ese mes más el mantenimiento mensual de la tarjeta. El mantenimiento se suma **una sola vez**, y solo si ese mes vence al menos una cuota. También para el admin cuenta solo su propio grupo.
+
+| Parámetro | Tipo | Obligatorio | Qué hace |
+|-----------|------|:-----------:|----------|
+| `period` | string `YYYY-MM` | No | mes a calcular; si falta o viene vacío, el mes en curso. Si no es válido: `422` en `period` con "no es válido" |
+
+```bash
+curl "http://localhost:3000/api/v1/installment_purchases/monthly_total?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+{
+  "period": "2026-11",
+  "installments": [
+    { "id": 1, "description": "Heladera", "installment_amount": "100.0" },
+    { "id": 2, "description": "Televisor", "installment_amount": "360.0" }
+  ],
+  "installments_total": "460.0",
+  "card_monthly_fee": "3500.0",
+  "total": "3960.0"
+}
+```
+
+`card_monthly_fee` es `0` si ese mes no vence ninguna cuota.
+
+### `GET /installment_settings`
+
+Protegido. Mantenimiento mensual de la tarjeta del grupo familiar del usuario: un monto fijo en pesos que se suma una vez por mes al total de las cuotas. Por defecto es `0`.
+
+```bash
+curl http://localhost:3000/api/v1/installment_settings -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+{ "card_monthly_fee": "3500.0" }
+```
+
+### `PATCH /installment_settings`
+
+Protegido. Cambia el mantenimiento mensual del grupo familiar. Si el banco lo cambia, hay que actualizarlo acá para que los totales sean reales.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `card_monthly_fee` | decimal | No | mayor o igual a 0 |
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/installment_settings \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"card_monthly_fee":3500}'
+```
+
+`200` con el valor guardado. `422` si es negativo o no es un número:
+
+```json
+{ "errors": [ { "field": "card_monthly_fee", "message": "debe ser mayor que o igual a 0" } ] }
+```
 
 ---
 

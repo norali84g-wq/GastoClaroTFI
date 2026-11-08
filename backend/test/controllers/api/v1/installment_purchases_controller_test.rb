@@ -63,6 +63,35 @@ class Api::V1::InstallmentPurchasesControllerTest < ActionDispatch::IntegrationT
     assert_equal @familia.id, InstallmentPurchase.find(body["id"]).family_group_id
   end
 
+  test "create sin interest_rate lo guarda en 0 y la cuota no cambia" do
+    post "/api/v1/installment_purchases", params: datos_validos, headers: headers_for(@user), as: :json
+
+    assert_response :created
+    body = response.parsed_body
+    assert_equal 0, BigDecimal(body["interest_rate"])
+    assert_equal 900, BigDecimal(body["total_with_interest"])
+    assert_equal 300, BigDecimal(body["installment_amount"])
+  end
+
+  test "create con interest_rate suma el interes a la cuota" do
+    post "/api/v1/installment_purchases", params: datos_validos(interest_rate: 20),
+                                          headers: headers_for(@user), as: :json
+
+    assert_response :created
+    body = response.parsed_body
+    assert_equal 1080, BigDecimal(body["total_with_interest"])
+    assert_equal 360, BigDecimal(body["installment_amount"])
+  end
+
+  test "create ignora card_monthly_fee: el mantenimiento es del grupo familiar" do
+    post "/api/v1/installment_purchases", params: datos_validos(card_monthly_fee: 5000),
+                                          headers: headers_for(@user), as: :json
+
+    assert_response :created
+    assert_not response.parsed_body.key?("card_monthly_fee")
+    assert_equal 0, @familia.reload.card_monthly_fee
+  end
+
   test "create con vendor existente lo guarda" do
     vendor = Vendor.create!(name: "Tienda")
 
@@ -87,6 +116,9 @@ class Api::V1::InstallmentPurchasesControllerTest < ActionDispatch::IntegrationT
       [ { total_amount: 0 }, "total_amount" ],
       [ { installments_count: 0 }, "installments_count" ],
       [ { installments_count: 49 }, "installments_count" ],
+      [ { interest_rate: -1 }, "interest_rate" ],
+      [ { interest_rate: 100.01 }, "interest_rate" ],
+      [ { interest_rate: nil }, "interest_rate" ],
       [ { first_period: "2026-9" }, "first_period" ],
       [ { first_period: "2026-13" }, "first_period" ],
       [ { category_id: 0 }, "category_id" ],

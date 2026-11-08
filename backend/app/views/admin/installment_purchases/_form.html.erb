@@ -33,6 +33,11 @@
   </div>
 
   <div class="field">
+    <%= f.label :interest_rate, "Interés total de la compra (%)" %>
+    <%= f.number_field :interest_rate, step: 0.01, min: 0, max: 100, required: true %>
+  </div>
+
+  <div class="field">
     <%= f.label :first_period, "Mes de la primera cuota" %>
     <%= f.text_field :first_period, type: "month", required: true %>
   </div>

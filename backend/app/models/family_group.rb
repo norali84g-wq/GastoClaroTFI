@@ -6,5 +6,6 @@ class FamilyGroup < ApplicationRecord
   has_many :shopping_list_items, dependent: :destroy
 
   validates :name, presence: true
+  validates :card_monthly_fee, numericality: { greater_than_or_equal_to: 0 }
   validates :savings_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
 end
