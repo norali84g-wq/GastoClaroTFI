@@ -5,7 +5,7 @@ info:
   description: |
     API JSON del back-end de GastoClaro (gestión de gastos personales).
 
-    El contrato completo, con ejemplos para `curl`, está en `api.md`. Esta
+    El contrato completo, con ejemplos para `curl`, está en `docs/api/api.md`. Esta
     documentación lo describe en formato OpenAPI para poder explorarlo y
     probarlo desde Swagger UI.
 
@@ -1752,7 +1752,7 @@ components:
           example: Productos de limpieza
         vendor_id:
           type: integer
-          description: No se usa. Si se envía, tiene que existir.
+          description: Opcional. El front no lo envía; si se envía, tiene que existir.
         is_fixed:
           type: boolean
           default: false

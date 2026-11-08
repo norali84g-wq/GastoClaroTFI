@@ -12,6 +12,8 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+      # Crea la base de test y le da permisos a MYSQL_USER (solo corre con el volumen vacío).
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
 
 volumes:
   db_data:

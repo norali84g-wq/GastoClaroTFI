@@ -10,7 +10,7 @@ end
 
 puts "Admin creado -> usuario: admin / contraseña: admin1234"
 
-# Categorías de ejemplo (las del contrato de la API, api.md).
+# Categorías de ejemplo (las del contrato de la API, docs/api/api.md).
 supermercado = Category.find_or_create_by!(name: "Supermercado")
 limpieza = Category.find_or_create_by!(name: "Limpieza")
 

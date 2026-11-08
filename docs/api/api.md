@@ -213,6 +213,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `quantity` | string decimal | **Sí** | cantidad |
 | `estimated_unit_price` | string decimal | No | precio unitario estimado |
 | `subtotal` | string decimal | No | **calculado, no se guarda**: `quantity × estimated_unit_price` (`0` si no hay cantidad) |
+| `purchased` | boolean | No | si ya se compró. Por defecto `false` |
 | `category` | objeto `{ id, name }` | No | categoría del ítem |
 
 ### Compra en cuotas
@@ -477,20 +478,28 @@ Protegido. Compara los gastos de dos meses. Por categoría y por producto muestr
 | Parámetro | Tipo | Obligatorio | Qué es |
 |-----------|------|:-----------:|--------|
 | `to` | string `AAAA-MM` | No | mes que se compara. Por defecto, el mes en curso |
-| `from` | string `AAAA-MM` | No | mes base. Por defecto, el mes anterior a `to` |
+| `from` | string `AAAA-MM` | No | mes base. Por defecto, el mes anterior a `to`. Tiene que ser distinto de `to` (puede ser posterior) |
 
 ```bash
 curl "http://localhost:3000/api/v1/statistics/monthly_comparison?from=2026-10&to=2026-11" -H "Authorization: Bearer <TOKEN>"
 ```
 
-Cómo se calculan los efectos de cada producto (se emparejan por nombre y unidad, sin importar mayúsculas):
+Cómo se calculan los efectos de cada producto. Los productos se emparejan por nombre (sin importar mayúsculas ni espacios de más) y unidad; el mismo producto en `kg` y en `g` cuenta como dos productos.
 
-- `quantity_effect` = (cantidad nueva − cantidad vieja) × precio viejo
-- `price_effect` = (precio nuevo − precio viejo) × cantidad nueva
+- `quantity_effect` = (cantidad nueva − cantidad vieja) × precio viejo, redondeado a 2 decimales.
+- `price_effect` = `difference` − `quantity_effect`, que equivale a (precio nuevo − precio viejo) × cantidad nueva. Calcularlo así hace que los dos efectos sumen siempre la diferencia exacta.
+- `from_unit_price` y `to_unit_price` son el precio promedio del mes, redondeado a 2 decimales.
 
-Los dos efectos suman la diferencia total del producto. Un producto que no estaba el mes anterior tiene `status` `new` (todo es efecto cantidad); uno que dejó de comprarse es `stopped`; el resto es `bought`. Los efectos se calculan solo con los gastos que tienen detalle de productos; el total de la categoría sale del importe de cada gasto.
+Un producto que no estaba en `from` tiene `status` `new` y uno que no está en `to`, `stopped`: en los dos casos toda la diferencia es efecto cantidad. El resto es `bought`.
 
-`200` (los números son ilustrativos):
+Por categoría:
+
+- Los gastos de una subcategoría (de cualquier nivel) se suman a su **categoría raíz**.
+- `from_total` y `to_total` salen del importe de cada gasto. `price_effect` y `quantity_effect` son la suma de los de sus productos.
+- `other_effect` es la parte de la diferencia que viene de gastos **sin detalle de productos**. Siempre se cumple `price_effect + quantity_effect + other_effect = difference`.
+- `percent_change` es un número (no un texto) y es `null` si en `from` no hubo gastos de esa categoría.
+
+`200`. En el ejemplo, Comida tiene en octubre 2 kg de arroz a 1500 más 7000 en gastos sin detalle, y en noviembre 3 kg de arroz a 2000 más 6000 sin detalle:
 
 ```json
 {
@@ -507,7 +516,8 @@ Los dos efectos suman la diferencia total del producto. Un producto que no estab
       "difference": "2000.0",
       "percent_change": 20.0,
       "price_effect": "1500.0",
-      "quantity_effect": "500.0",
+      "quantity_effect": "1500.0",
+      "other_effect": "-1000.0",
       "products": [
         {
           "name": "Arroz", "unit": "kg",
@@ -524,7 +534,16 @@ Los dos efectos suman la diferencia total del producto. Un producto que no estab
 }
 ```
 
-Las categorías vienen ordenadas por el cambio más grande (en valor absoluto), y los productos también. `422` con `field` `from` o `to` si el mes no tiene formato `AAAA-MM`.
+Las categorías vienen ordenadas por el cambio más grande (en valor absoluto) y, a igual cambio, por nombre. Los productos, igual.
+
+`422`:
+
+- con `field` `from` o `to` (y el mensaje "no es válido") si el mes no tiene formato `AAAA-MM`. Si los dos están mal, vienen los dos errores juntos;
+- con `field` `to` y el mensaje "debe ser distinto de from" si los dos meses son el mismo.
+
+```json
+{ "errors": [ { "field": "to", "message": "debe ser distinto de from" } ] }
+```
 
 ---
 
@@ -1010,6 +1029,8 @@ curl -X POST http://localhost:3000/api/v1/installment_purchases \
 }
 ```
 
+El mantenimiento de la tarjeta **no** se envía acá: es del grupo familiar (ver `/installment_settings`). Si se manda `card_monthly_fee` en este pedido, se ignora.
+
 `422` con datos inválidos (por ejemplo, un `first_period` con un mes que no existe):
 
 ```json
@@ -1081,7 +1102,7 @@ Protegido. Cambia el mantenimiento mensual de la tarjeta: un monto fijo en pesos
 
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|
-| `card_monthly_fee` | number | Sí | mayor o igual a 0 |
+| `card_monthly_fee` | number | No | mayor o igual a 0. Si no se envía, el valor no cambia |
 
 ```bash
 curl -X PATCH http://localhost:3000/api/v1/installment_settings \
@@ -1089,17 +1110,21 @@ curl -X PATCH http://localhost:3000/api/v1/installment_settings \
   -d '{"card_monthly_fee":3500}'
 ```
 
-`200`: `{ "card_monthly_fee": "3500.0" }`. `422` si el monto es negativo.
+`200`: `{ "card_monthly_fee": "3500.0" }`. `422` si el monto es negativo o no es un número.
 
 ---
 
 ## Lista de gastos fijos
 
-Lo planificado de cada mes, por categoría. Pertenece al **grupo familiar** del usuario (cada usuario registrado por la API tiene el suyo). El admin ve y modifica los de todos. Un ítem de otro grupo responde `404`. Lo planificado se compara con el consumo real en `consumption_by_category` de `GET /dashboard` (campo `planned`).
+Lo planificado de cada mes, por categoría. Pertenece al **grupo familiar** del usuario (cada usuario registrado por la API tiene el suyo). El admin ve y modifica los de todos, salvo en la copia a otro mes, que actúa solo sobre su grupo. Un ítem de otro grupo responde `404`. Lo planificado se compara con el consumo real en `consumption_by_category` de `GET /dashboard` (campo `planned`).
 
 ### `GET /shopping_list_items`
 
-Protegido. Lista los ítems ordenados por mes y nombre. Con `?period=AAAA-MM` trae solo ese mes. Con `?status=pending` trae los no comprados y con `?status=purchased` los comprados; sin `status`, todos.
+Protegido. Lista los ítems ordenados por mes y nombre. Con `?period=AAAA-MM` trae solo ese mes. Con `?status=pending` trae los no comprados y con `?status=purchased` los comprados; sin `status`, todos. Los dos filtros se pueden combinar. Cualquier otro valor de `status` responde `422`:
+
+```json
+{ "errors": [ { "field": "status", "message": "debe ser pending o purchased" } ] }
+```
 
 ```bash
 curl "http://localhost:3000/api/v1/shopping_list_items?period=2026-11" -H "Authorization: Bearer <TOKEN>"
@@ -1131,7 +1156,7 @@ curl -X POST http://localhost:3000/api/v1/shopping_list_items \
   -d '{"name":"Fideos","period":"2026-11","quantity":3,"estimated_unit_price":800,"category_id":1}'
 ```
 
-`201`: el ítem creado, con la forma **Ítem de la lista de gastos fijos**. El campo `purchased` (boolean) es opcional y por defecto vale `false`. `422` con datos inválidos:
+`201`: el ítem creado, con la forma **Ítem de la lista de gastos fijos**. El campo `purchased` (boolean) es opcional y por defecto vale `false`; si se envía vacío o `null`, responde `422` con `field` `purchased` y el mensaje "debe ser true o false". `422` con datos inválidos:
 
 ```json
 { "errors": [ { "field": "period", "message": "debe tener formato AAAA-MM" } ] }
@@ -1149,7 +1174,7 @@ Protegido. `204`, sin cuerpo. `404` si no existe o es de otro grupo.
 
 ### `POST /shopping_list_items/copy`
 
-Protegido. Copia al mes destino los ítems **no comprados** del mes origen. Los que ya existen en el mes destino con el mismo nombre se saltean. Devuelve solo los ítems creados.
+Protegido. Copia al mes destino los ítems **no comprados** del mes origen, con su categoría, cantidad y precio estimado; los copiados quedan como no comprados. Actúa siempre sobre el **grupo familiar del usuario**, también si es admin: no toca los ítems de otros grupos. Un ítem se saltea si en el mes destino ya hay uno con el mismo nombre (sin importar mayúsculas ni espacios de más), y tampoco se copian dos veces dos pendientes con el mismo nombre. Devuelve solo los ítems creados.
 
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|

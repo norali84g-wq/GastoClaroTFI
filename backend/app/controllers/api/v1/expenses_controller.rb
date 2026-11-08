@@ -1,5 +1,5 @@
 class Api::V1::ExpensesController < Api::V1::BaseController
-  # Tope de gastos que devuelve el listado (ver api.md, GET /expenses).
+  # Tope de gastos que devuelve el listado (ver docs/api/api.md, GET /expenses).
   MAX_INDEX_EXPENSES = 100
   # Campo que se informa cuando ?period no tiene el formato YYYY-MM.
   PERIOD_FIELD = "period".freeze

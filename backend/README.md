@@ -35,21 +35,23 @@ docker compose up -d db          # levanta MySQL 8 (contenedor gastoclaro_db)
 cd backend
 mise install ruby@3.4.10         # instala la versión de Ruby del proyecto
 bundle install                   # instala las gemas
-cp .env.example .env             # variables de conexión a la base
 bin/rails db:create db:migrate db:seed
 bin/rails server                 # http://localhost:3000
 ```
 
 Si `ruby -v` no muestra 3.4.10, ejecutá los comandos con `mise exec -- <comando>` o activá mise en tu shell (`eval "$(mise activate bash)"`).
 
-**Variables de entorno** (`backend/.env`, plantilla en `.env.example`):
+**Base de tests:** la primera vez que arranca el contenedor (con el volumen vacío), `docker/mysql/init/` crea `gastoclaro_test` y le da permisos al usuario `gastoclaro`, también para las bases que crean los tests en paralelo (`gastoclaro_test-0`, `gastoclaro_test-1`, ...). Si ya tenías el volumen creado de antes, recrealo con `docker compose down -v && docker compose up -d db` (borra los datos de la base local) o corré a mano, como root, el SQL de ese directorio.
 
-| Variable | Para qué sirve |
-|----------|----------------|
-| `DB_HOST`, `DB_PORT` | Dónde está MySQL (por defecto `127.0.0.1:3306`) |
-| `DB_USERNAME`, `DB_PASSWORD` | Usuario y contraseña de la base (coinciden con `docker-compose.yml`) |
-| `DB_NAME`, `DB_NAME_TEST` | Base de desarrollo y base de tests |
-| `FRONTEND_URL` | Origen (o lista separada por comas) desde el que el front puede llamar a la API (CORS). Si el front corre en otro puerto: `FRONTEND_URL=http://localhost:5174 bin/rails server` |
+**Variables de entorno.** Con el MySQL de `docker compose` no hace falta definir ninguna: los valores por defecto de `config/database.yml` ya coinciden con `docker-compose.yml`. Rails **no** lee un archivo `.env`; [`.env.example`](.env.example) es la referencia de las variables. Si tu entorno es distinto, exportá las que cambien antes de levantar Rails (por ejemplo `export DB_PORT=3307`).
+
+| Variable | Para qué sirve | Por defecto |
+|----------|----------------|-------------|
+| `DB_HOST`, `DB_PORT` | Dónde está MySQL | `127.0.0.1`, `3306` |
+| `DB_USER`, `DB_PASSWORD` | Usuario y contraseña de la base | `gastoclaro`, `gastoclaro` (en producción `DB_PASSWORD` no tiene valor por defecto) |
+| `FRONTEND_URL` | Origen (o lista separada por comas) desde el que el front puede llamar a la API (CORS). Si el front corre en otro puerto: `FRONTEND_URL=http://localhost:5174 bin/rails server` | `http://localhost:5173` en desarrollo y test; en producción es obligatoria |
+
+Los nombres de las bases son fijos: `gastoclaro_development` y `gastoclaro_test`.
 
 **Antes de desplegar:** en `config/deploy.yml` la variable `FRONTEND_URL` está comentada. Hay que descomentarla y poner la URL real del front.
 
@@ -83,7 +85,7 @@ Lo básico:
 Endpoints destacados de las últimas funciones:
 
 - `GET /api/v1/statistics/monthly_comparison`: compara dos meses por categoría y producto, separando el efecto del precio y el de la cantidad.
-- `GET /api/v1/shopping_list_items?status=pending|purchased` y `POST /api/v1/shopping_list_items/copy`: lista de compras con ítems comprados y copia de los pendientes al mes siguiente.
+- `GET /api/v1/shopping_list_items?status=pending|purchased` y `POST /api/v1/shopping_list_items/copy`: lista de compras con ítems comprados y copia de los pendientes a otro mes.
 - `GET /api/v1/installment_purchases/monthly_total`: total de un mes (cuotas con interés más el mantenimiento mensual de la tarjeta, que se suma una sola vez).
 - `GET` y `PATCH /api/v1/installment_settings`: mantenimiento mensual de la tarjeta (valor del grupo, editable).
 
