@@ -2,7 +2,7 @@
 # mantenimiento mensual de la tarjeta. El mantenimiento se suma una sola vez, y solo si ese mes
 # vence al menos una cuota.
 class InstallmentMonthlyTotal
-  PERIOD_FORMAT = /\A\d{4}-(0[1-9]|1[0-2])\z/
+  PERIOD_FORMAT = InstallmentPurchase::PERIOD_FORMAT
 
   # `purchases` son las compras del grupo familiar del usuario.
   def initialize(period:, purchases:, card_monthly_fee:)

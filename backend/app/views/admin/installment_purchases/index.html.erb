@@ -11,6 +11,8 @@
       <th>Descripción</th>
       <th>Comercio</th>
       <th>Monto total</th>
+      <th>Interés</th>
+      <th>Total con interés</th>
       <th>Cuota mensual</th>
       <th>Cuotas</th>
       <th>Estado</th>
@@ -23,6 +25,8 @@
         <td><%= compra.description %></td>
         <td><%= compra.vendor&.name || "—" %></td>
         <td>$<%= number_with_delimiter(compra.total_amount) %></td>
+        <td><%= number_with_delimiter(compra.interest_rate) %>%</td>
+        <td>$<%= number_with_delimiter(compra.total_con_interes) %></td>
         <td>$<%= number_with_delimiter(compra.monto_por_cuota) %></td>
         <td><%= compra.cuotas_pagadas %> / <%= compra.installments_count %></td>
         <td>
@@ -40,7 +44,7 @@
     <% end %>
 
     <% if @installment_purchases.empty? %>
-      <tr><td colspan="7">Todavía no cargaste compras en cuotas para esta categoría.</td></tr>
+      <tr><td colspan="9">Todavía no cargaste compras en cuotas para esta categoría.</td></tr>
     <% end %>
   </tbody>
 </table>
