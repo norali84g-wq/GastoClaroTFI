@@ -7,10 +7,7 @@ class Api::V1::PaymentMethodsControllerTest < ActionDispatch::IntegrationTest
     @admin = User.create!(user: "jefa", password: "password123", family_group: @familia, admin: true)
     @otro_user = User.create!(user: "otro", password: "password123", family_group: @familia)
 
-    @visa = PaymentMethod.create!(
-      user: @user, name: "Visa Galicia", issuer: "Galicia", last_four: "4417",
-      closing_day: 25, due_day: 5, monthly_fee: 3500
-    )
+    @visa = PaymentMethod.create!(user: @user, name: "Visa Galicia", monthly_fee: 3500)
     @ajeno = PaymentMethod.create!(user: @otro_user, name: "Mastercard")
   end
 
@@ -30,8 +27,6 @@ class Api::V1::PaymentMethodsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal [ "Visa Galicia" ], response.parsed_body.map { |m| m["name"] }
     visa = response.parsed_body.first
-    assert_equal "4417", visa["last_four"]
-    assert_equal 25, visa["closing_day"]
     assert_equal BigDecimal("3500"), BigDecimal(visa["monthly_fee"])
     assert_equal @user.id, visa["user"]["id"]
   end
@@ -45,13 +40,13 @@ class Api::V1::PaymentMethodsControllerTest < ActionDispatch::IntegrationTest
   test "create deja el medio de pago a nombre del usuario aunque se envie otro user_id" do
     assert_difference -> { @user.payment_methods.count }, 1 do
       post "/api/v1/payment_methods",
-           params: { name: "Naranja", nickname: "La roja", monthly_fee: 1200, user_id: @otro_user.id },
+           params: { name: "Naranja", monthly_fee: 1200, user_id: @otro_user.id },
            headers: headers_for(@user)
     end
 
     assert_response :created
     assert_equal @user.id, response.parsed_body["user"]["id"]
-    assert_equal "La roja", response.parsed_body["nickname"]
+    assert_equal BigDecimal("1200"), BigDecimal(response.parsed_body["monthly_fee"])
   end
 
   test "create sin nombre da 422" do
@@ -61,11 +56,11 @@ class Api::V1::PaymentMethodsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "name", response.parsed_body["errors"].first["field"]
   end
 
-  test "create con ultimos digitos mal formados da 422" do
-    post "/api/v1/payment_methods", params: { name: "Naranja", last_four: "12" }, headers: headers_for(@user)
+  test "create con un mantenimiento negativo da 422" do
+    post "/api/v1/payment_methods", params: { name: "Naranja", monthly_fee: -5 }, headers: headers_for(@user)
 
     assert_response :unprocessable_entity
-    assert_equal "last_four", response.parsed_body["errors"].first["field"]
+    assert_equal "monthly_fee", response.parsed_body["errors"].first["field"]
   end
 
   test "update modifica solo lo que se envia" do

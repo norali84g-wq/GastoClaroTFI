@@ -1099,7 +1099,7 @@ curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorizati
 
 ## Medios de pago
 
-Un medio de pago es una tarjeta (u otro medio) de **un usuario**. Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`. Los gastos (`POST` y `PATCH /expenses`) y las compras en cuotas (`POST` y `PATCH /installment_purchases`) aceptan un `payment_method_id` opcional: tiene que ser un medio de pago del usuario, si no responde `422` con `field` `payment_method_id`.
+Un medio de pago es el nombre de una tarjeta (u otro medio) de **un usuario**, con su mantenimiento mensual. **No se guardan datos de la tarjeta** (número, vencimiento ni código). Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`. Los gastos (`POST` y `PATCH /expenses`) y las compras en cuotas (`POST` y `PATCH /installment_purchases`) aceptan un `payment_method_id` opcional: tiene que ser un medio de pago del usuario, si no responde `422` con `field` `payment_method_id`.
 
 El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por cada medio de pago que tenga cuotas ese mes, en `GET /installment_purchases/monthly_total`. Las compras sin medio de pago usan el mantenimiento del grupo (`GET /installment_settings`), también una sola vez.
 
@@ -1109,11 +1109,6 @@ El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por c
 |-------|------|:----------------:|--------|
 | `id` | integer | No | identificador |
 | `name` | string | No | cómo se llama (por ejemplo `Visa Galicia`) |
-| `nickname` | string | **Sí** | alias |
-| `issuer` | string | **Sí** | emisor (banco) |
-| `last_four` | string | **Sí** | últimos 4 dígitos |
-| `closing_day` | integer | **Sí** | día del mes en que cierra el resumen (1 a 31) |
-| `due_day` | integer | **Sí** | día del mes en que vence el resumen (1 a 31) |
 | `monthly_fee` | string decimal | No | mantenimiento mensual (`0` si no tiene) |
 | `user` | objeto `{ id, user }` | No | dueño |
 
@@ -1130,8 +1125,7 @@ curl http://localhost:3000/api/v1/payment_methods -H "Authorization: Bearer <TOK
 ```json
 [
   {
-    "id": 1, "name": "Visa Galicia", "nickname": "La del súper", "issuer": "Banco Galicia", "last_four": "4417",
-    "closing_day": 25, "due_day": 5, "monthly_fee": "3500.0", "user": { "id": 2, "user": "demo" }
+    "id": 1, "name": "Visa Galicia", "monthly_fee": "3500.0", "user": { "id": 2, "user": "demo" }
   }
 ]
 ```
@@ -1143,23 +1137,18 @@ Protegido. Queda a nombre del usuario; cualquier `user_id` enviado se ignora.
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|
 | `name` | string | Sí | no puede estar vacío |
-| `nickname` | string | No | |
-| `issuer` | string | No | |
-| `last_four` | string | No | 4 dígitos |
-| `closing_day` | integer | No | de 1 a 31 |
-| `due_day` | integer | No | de 1 a 31 |
 | `monthly_fee` | number | No | mayor o igual a 0. Por defecto `0` |
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/payment_methods \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{"name":"Visa Galicia","last_four":"4417","closing_day":25,"due_day":5,"monthly_fee":3500}'
+  -d '{"name":"Visa Galicia","monthly_fee":3500}'
 ```
 
 `201`: el medio de pago creado, con la forma **Medio de pago**. `422` con datos inválidos:
 
 ```json
-{ "errors": [ { "field": "last_four", "message": "deben ser 4 dígitos" } ] }
+{ "errors": [ { "field": "name", "message": "no puede estar en blanco" } ] }
 ```
 
 ### `PATCH /payment_methods/:id`

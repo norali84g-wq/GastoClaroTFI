@@ -40,18 +40,13 @@ class Api::V1::PaymentMethodsController < Api::V1::BaseController
   end
 
   def payment_method_params
-    params.permit(:name, :nickname, :issuer, :last_four, :closing_day, :due_day, :monthly_fee)
+    params.permit(:name, :monthly_fee)
   end
 
   def payment_method_json(payment_method)
     {
       id: payment_method.id,
       name: payment_method.name,
-      nickname: payment_method.nickname,
-      issuer: payment_method.issuer,
-      last_four: payment_method.last_four,
-      closing_day: payment_method.closing_day,
-      due_day: payment_method.due_day,
       monthly_fee: payment_method.monthly_fee,
       user: { id: payment_method.user_id, user: payment_method.user.user }
     }

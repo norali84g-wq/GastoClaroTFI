@@ -24,27 +24,6 @@ class PaymentMethodTest < ActiveSupport::TestCase
     assert m.errors.key?(:name)
   end
 
-  test "los ultimos 4 digitos tienen que ser 4 numeros" do
-    assert medio(last_four: "4417").valid?
-    assert_not medio(last_four: "44").valid?
-    assert_not medio(last_four: "abcd").valid?
-  end
-
-  test "los ultimos 4 digitos vacios se guardan como nulos" do
-    m = medio(last_four: "  ")
-    m.valid?
-
-    assert_nil m.last_four
-    assert m.valid?
-  end
-
-  test "los dias de cierre y vencimiento van de 1 a 31" do
-    assert medio(closing_day: 1, due_day: 31).valid?
-    assert_not medio(closing_day: 0).valid?
-    assert_not medio(due_day: 32).valid?
-    assert_not medio(closing_day: 1.5).valid?
-  end
-
   test "el mantenimiento no puede ser negativo" do
     m = medio(monthly_fee: -1)
     m.valid?

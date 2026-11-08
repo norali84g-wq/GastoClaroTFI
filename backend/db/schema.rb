@@ -161,11 +161,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_130200) do
   create_table "payment_methods", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", null: false
-    t.string "nickname"
-    t.string "issuer"
-    t.string "last_four", limit: 4
-    t.integer "closing_day"
-    t.integer "due_day"
     t.decimal "monthly_fee", precision: 10, scale: 2, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
