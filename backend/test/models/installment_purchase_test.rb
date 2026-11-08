@@ -16,6 +16,20 @@ class InstallmentPurchaseTest < ActiveSupport::TestCase
     assert c.errors.key?(:interest_rate)
   end
 
+  test "interest_rate no puede superar 100" do
+    c = compra(interest_rate: 100.01, description: "x")
+    c.valid?
+    assert c.errors.key?(:interest_rate)
+
+    c = compra(interest_rate: 100, description: "x")
+    c.valid?
+    assert_not c.errors.key?(:interest_rate)
+  end
+
+  test "interest_rate vale 0 por defecto" do
+    assert_equal 0, InstallmentPurchase.new.interest_rate
+  end
+
   test "periodos lista un periodo por cuota, cruzando de anio" do
     assert_equal %w[2026-11 2026-12 2027-01], compra(first_period: "2026-11", installments_count: 3).periodos
   end
