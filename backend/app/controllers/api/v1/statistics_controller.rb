@@ -21,10 +21,9 @@ class Api::V1::StatisticsController < Api::V1::BaseController
   # diferencia por categoría y por producto, separando lo que se debe al precio y a la cantidad.
   def monthly_comparison
     to_period = params[:to].to_s.presence || Date.current.strftime("%Y-%m")
-    return invalid_period("to") unless to_period.match?(MonthlyComparison::PERIOD_FORMAT)
-
-    from_period = params[:from].to_s.presence || previous_period(to_period)
-    return invalid_period("from") unless from_period.match?(MonthlyComparison::PERIOD_FORMAT)
+    from_period = params[:from].to_s.presence || (previous_period(to_period) if Period.valid?(to_period))
+    errors = comparison_errors(from_period, to_period)
+    return render json: { errors: errors }, status: :unprocessable_entity if errors.any?
 
     render json: MonthlyComparison.new(
       from_period: from_period, to_period: to_period, expenses: visible_expenses
@@ -33,8 +32,16 @@ class Api::V1::StatisticsController < Api::V1::BaseController
 
   private
 
-  def invalid_period(field)
-    render_error(api_t("invalid_period"), status: :unprocessable_entity, field: field)
+  # Informa juntos los errores de los dos meses. Si `to` es inválido y `from` no vino, `from` no se
+  # puede calcular: solo se informa `to`.
+  def comparison_errors(from_period, to_period)
+    errors = []
+    errors << { field: "from", message: api_t("invalid_period") } if from_period && !Period.valid?(from_period)
+    errors << { field: "to", message: api_t("invalid_period") } unless Period.valid?(to_period)
+    if errors.empty? && from_period == to_period
+      errors << { field: "to", message: "debe ser distinto de from" }
+    end
+    errors
   end
 
   def previous_period(period)

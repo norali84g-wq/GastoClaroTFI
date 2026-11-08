@@ -182,11 +182,20 @@ paths:
         Compara los gastos reales de dos meses por categoría y por producto, y
         separa cuánto de la diferencia se debe al precio y cuánto a la
         cantidad. **Efecto cantidad** = (cantidad nueva - cantidad vieja) ×
-        precio viejo. **Efecto precio** = (precio nuevo - precio viejo) ×
-        cantidad nueva. Los dos efectos suman la diferencia. Un producto nuevo
-        o que se dejó de comprar cuenta todo como cantidad. Los efectos se
-        calculan solo con los gastos que tienen detalle de productos. El
-        administrador ve los datos de todos.
+        precio viejo, redondeado a 2 decimales. **Efecto precio** = diferencia
+        menos efecto cantidad, que equivale a (precio nuevo - precio viejo) ×
+        cantidad nueva: así los dos efectos suman siempre la diferencia exacta.
+        Los precios unitarios se muestran redondeados a 2 decimales. Un
+        producto nuevo o que se dejó de comprar cuenta todo como cantidad.
+
+        Los gastos de una subcategoría se suman a su categoría raíz. Los
+        productos se emparejan por nombre (sin importar mayúsculas ni espacios
+        de más) y unidad. Los efectos salen solo de los gastos con detalle de
+        productos; lo que viene de gastos sin detalle va en `other_effect`.
+
+        Cada usuario ve solo sus propios gastos; el administrador ve los de
+        todos. Si `from` o `to` no tienen formato `AAAA-MM`, o son el mismo
+        mes, responde 422.
       operationId: getMonthlyComparison
       parameters:
         - name: from
@@ -198,7 +207,7 @@ paths:
         - name: to
           in: query
           required: false
-          description: Mes de destino (AAAA-MM). Si falta, el mes en curso.
+          description: Mes de destino (AAAA-MM). Si falta, el mes en curso. Tiene que ser distinto de `from`.
           schema:
             $ref: "#/components/schemas/Period"
       responses:
@@ -247,6 +256,9 @@ paths:
                         quantity_effect:
                           type: string
                           description: Parte de la diferencia que se debe a la cantidad.
+                        other_effect:
+                          type: string
+                          description: Parte de la diferencia que viene de gastos sin detalle de productos. `price_effect + quantity_effect + other_effect = difference`.
                         products:
                           type: array
                           items:

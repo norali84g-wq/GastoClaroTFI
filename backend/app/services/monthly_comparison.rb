@@ -1,26 +1,27 @@
 # Compara los gastos reales de dos meses. Por categoría y por producto muestra cuánto cambió el gasto
 # y separa cuánto se debe al precio y cuánto a la cantidad:
-#   efecto cantidad = (cantidad nueva - cantidad vieja) * precio viejo
-#   efecto precio   = (precio nuevo - precio viejo) * cantidad nueva
-# Los dos efectos suman la diferencia total del producto. Los productos se emparejan por nombre y
-# unidad, sin importar mayúsculas. Los efectos se calculan solo con los gastos que tienen detalle de
-# productos; el total de la categoría sale del importe de cada gasto.
+#   efecto cantidad = (cantidad nueva - cantidad vieja) * precio viejo   (redondeado a 2 decimales)
+#   efecto precio   = diferencia - efecto cantidad  (= (precio nuevo - precio viejo) * cantidad nueva)
+# Calcular el efecto precio como resto hace que los dos efectos sumen siempre la diferencia exacta.
+# Los gastos de una subcategoría se suman a su categoría raíz. Los productos se emparejan por nombre
+# (sin importar mayúsculas ni espacios de más) y unidad. Los efectos salen solo de los gastos con
+# detalle de productos; lo que viene de gastos sin detalle se informa aparte en `other_effect`.
 class MonthlyComparison
-  PERIOD_FORMAT = /\A\d{4}-(0[1-9]|1[0-2])\z/
-
   # `expenses` es lo que el usuario puede ver (ya filtrado por la API).
   def initialize(from_period:, to_period:, expenses:)
     @from_period = from_period
     @to_period = to_period
     @expenses = expenses
+    @parent_ids = Category.pluck(:id, :parent_id).to_h
+    @root_ids = {}
   end
 
   def as_json(*)
     from = month_data(@from_period)
     to = month_data(@to_period)
-    category_ids = (from[:totals].keys | to[:totals].keys)
+    category_ids = from[:totals].keys | to[:totals].keys
     rows = Category.where(id: category_ids).map { |category| category_row(category, from, to) }
-    rows = rows.sort_by { |row| -row[:difference].abs }
+    rows = rows.sort_by { |row| [ -row[:difference].abs, row[:category][:name], row[:category][:id] ] }
 
     {
       from_period: @from_period,
@@ -34,31 +35,50 @@ class MonthlyComparison
 
   private
 
+  # Totales e ítems de un mes, agrupados por categoría raíz.
   def month_data(period)
     start = Date.strptime("#{period}-01", "%Y-%m-%d")
     expenses = @expenses.where(date: start..start.end_of_month).to_a
-    category_by_expense = expenses.to_h { |expense| [ expense.id, expense.category_id ] }
-    items = ExpenseItem.where(expense_id: category_by_expense.keys).to_a
+    root_by_expense = expenses.to_h { |expense| [ expense.id, root_id(expense.category_id) ] }
+    items = ExpenseItem.where(expense_id: root_by_expense.keys).to_a
 
     {
-      totals: expenses.group_by(&:category_id).transform_values { |list| list.sum(0.to_d, &:amount) },
-      items: items.group_by { |item| category_by_expense[item.expense_id] }
+      totals: expenses.group_by { |expense| root_by_expense[expense.id] }
+                      .transform_values { |list| list.sum(0.to_d, &:amount) },
+      items: items.group_by { |item| root_by_expense[item.expense_id] }
     }
+  end
+
+  # Categoría de más arriba de la que cuelga una categoría. Si los datos tuvieran un ciclo, corta en
+  # la última categoría no repetida, así que siempre termina.
+  def root_id(category_id)
+    @root_ids[category_id] ||= begin
+      current = category_id
+      seen = Set[current]
+      while (parent = @parent_ids[current]) && seen.add?(parent)
+        current = parent
+      end
+      current
+    end
   end
 
   def category_row(category, from, to)
     from_total = from[:totals][category.id] || 0.to_d
     to_total = to[:totals][category.id] || 0.to_d
     products = product_rows(from[:items][category.id] || [], to[:items][category.id] || [])
+    difference = to_total - from_total
+    price_effect = products.sum(0.to_d) { |product| product[:price_effect] }
+    quantity_effect = products.sum(0.to_d) { |product| product[:quantity_effect] }
 
     {
       category: { id: category.id, name: category.name },
       from_total: from_total,
       to_total: to_total,
-      difference: to_total - from_total,
+      difference: difference,
       percent_change: percent_change(from_total, to_total),
-      price_effect: products.sum(0.to_d) { |product| product[:price_effect] },
-      quantity_effect: products.sum(0.to_d) { |product| product[:quantity_effect] },
+      price_effect: price_effect,
+      quantity_effect: quantity_effect,
+      other_effect: difference - price_effect - quantity_effect,
       products: products
     }
   end
@@ -68,9 +88,9 @@ class MonthlyComparison
     to_by_product = to_items.group_by { |item| product_key(item) }
 
     rows = (from_by_product.keys | to_by_product.keys).map do |key|
-      product_row(from_by_product[key] || [], to_by_product[key] || [])
+      [ key, product_row(from_by_product[key] || [], to_by_product[key] || []) ]
     end
-    rows.sort_by { |row| -row[:difference].abs }
+    rows.sort_by { |key, row| [ -row[:difference].abs, *key ] }.map(&:last)
   end
 
   def product_row(from_list, to_list)
@@ -78,30 +98,36 @@ class MonthlyComparison
     to_quantity = to_list.sum(0.to_d, &:quantity)
     from_total = from_list.sum(0.to_d, &:subtotal)
     to_total = to_list.sum(0.to_d, &:subtotal)
-    from_price = from_quantity > 0 ? from_total / from_quantity : 0.to_d
-    to_price = to_quantity > 0 ? to_total / to_quantity : 0.to_d
-    price_effect, quantity_effect = effects(from_quantity, to_quantity, from_total, to_total, from_price, to_price)
+    difference = to_total - from_total
+    quantity_effect = quantity_effect(from_quantity, to_quantity, from_total, to_total)
     reference = to_list.first || from_list.first
 
     {
       name: reference.name,
       unit: reference.unit,
       from_quantity: from_quantity, to_quantity: to_quantity,
-      from_unit_price: from_price, to_unit_price: to_price,
+      from_unit_price: unit_price(from_total, from_quantity),
+      to_unit_price: unit_price(to_total, to_quantity),
       from_total: from_total, to_total: to_total,
-      difference: to_total - from_total,
-      price_effect: price_effect,
+      difference: difference,
+      price_effect: difference - quantity_effect,
       quantity_effect: quantity_effect,
       status: product_status(from_quantity, to_quantity)
     }
   end
 
   # Un producto nuevo o que se dejó de comprar no tiene precio con qué comparar: todo es cantidad.
-  def effects(from_quantity, to_quantity, from_total, to_total, from_price, to_price)
-    return [ 0.to_d, to_total ] if from_quantity.zero?
-    return [ 0.to_d, -from_total ] if to_quantity.zero?
+  # Se usa el precio viejo sin redondear (total / cantidad) y se redondea solo el resultado.
+  def quantity_effect(from_quantity, to_quantity, from_total, to_total)
+    return to_total if from_quantity.zero?
+    return -from_total if to_quantity.zero?
 
-    [ (to_price - from_price) * to_quantity, (to_quantity - from_quantity) * from_price ]
+    ((to_quantity - from_quantity) * from_total / from_quantity).round(2)
+  end
+
+  # Precio promedio del mes, redondeado a 2 decimales para mostrarlo.
+  def unit_price(total, quantity)
+    quantity.positive? ? (total / quantity).round(2) : 0.to_d
   end
 
   def product_status(from_quantity, to_quantity)
@@ -112,12 +138,12 @@ class MonthlyComparison
   end
 
   def product_key(item)
-    [ item.name.to_s.strip.downcase, item.unit ]
+    [ item.name.to_s.squish.downcase, item.unit ]
   end
 
   def percent_change(from_total, to_total)
     return nil if from_total.zero?
 
-    ((to_total - from_total) / from_total * 100).round(2)
+    ((to_total - from_total) / from_total * 100).round(2).to_f
   end
 end
