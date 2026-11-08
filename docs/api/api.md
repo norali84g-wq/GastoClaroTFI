@@ -1,448 +1,1240 @@
 # Contrato de la API — GastoClaro
 
-**Fecha:** 20/10/2026 · **Base URL:** `/api/v1` · **Formato:** JSON (`Content-Type: application/json`)
+**Versión:** 0.3 · **Autores:** Grupo 4 (TFI) · **Base URL:** `/api/v1` · **Formato:** JSON
 
-Este documento es el acuerdo entre front y back. Lo que está acá es lo que el front puede usar; si hay que cambiar algo, se cambia acá primero y se avisa por Trello.
+Esta misma API está documentada de forma interactiva en Swagger UI, en `/api-docs` (por ejemplo, `http://localhost:3000/api-docs`). Este documento (`api.md`) sigue siendo el contrato en prosa; la especificación [`swagger/v1/openapi.yaml`](../../backend/swagger/v1/openapi.yaml) es su versión formal. El test `test/docs/openapi_spec_test.rb` compara los endpoints del YAML con las rutas reales de la API y falla si se separan; cuando cambia un endpoint, se actualizan `api.md` y el YAML juntos.
 
-**Estado de cada sección**
+Este documento es el acuerdo entre el back-end (Rails) y el front-end (React). Lo que está acá es lo que el front puede usar. Si hay que cambiar algo, se cambia acá primero y se avisa por Trello.
 
-| Sección | Estado |
-|---|---|
-| 1. Convenciones, 2. Autenticación, 3. Categorías | **Completas** |
-| 4. Gastos e ingresos, 5. Tarjetas, 6. Compras en cuotas, 7. Presupuestos, 8. Ahorro | Rutas, campos, reglas y errores. Falta un ejemplo de respuesta por endpoint |
-| 9. Informes, 10. Análisis | Rutas y reglas de cálculo; el detalle de las respuestas se completa después |
+## Estado de cada endpoint
 
----
+| Estado | Significado |
+|--------|-------------|
+| `existe` | Ya funciona hoy en `main` con esta forma |
+| `cambia` | Existe, pero la respuesta o los errores cambian (PR pendiente) |
+| `falta` | Todavía no existe, está planificado. Su ejemplo muestra la forma acordada |
 
-## 1. Convenciones generales
+## Qué falta todavía en `main`
 
-- **Alcance:** todos los datos son personales. Cada usuario solo ve y modifica lo suyo. Pedir un recurso de otro usuario devuelve `404` (no `403`, para no revelar que existe).
+Esto describe el contrato final. Estas piezas todavía no están en `main`; hasta que entren, la API se comporta distinto:
+
+| Pieza | Hoy en `main` | Cuando entre |
+|-------|---------------|--------------|
+| `422` si un ítem de gasto llega sin `name` (en `POST` y `PATCH`) | el ítem se descarta en silencio | PR aparte |
+| `422` si `quantity` de un ítem no es entero | se recorta sin error (`1.5` → `1`, `0.5` → `0`) | mismo PR de validación de ítems |
+| `400` si el JSON está mal formado | Rails responde con su propio formato | sin PR todavía |
+
+Además, los endpoints de [Endpoints planificados](#endpoints-planificados) todavía no existen.
+
+## Convenciones
+
+- **Alcance:** los datos son personales. Cada usuario ve y modifica solo lo suyo. El usuario `admin` ve los de todos y puede usar los endpoints marcados "solo admin".
 - **Nombres:** rutas y campos en inglés, `snake_case`.
-- **Autenticación:** header `Authorization: Bearer <token>` en todas las rutas, salvo las marcadas como públicas.
-- **Montos:** siempre **enteros en centavos de peso argentino**, en campos que terminan en `_cents` (`250000` = $2.500,00). Nunca decimales ni strings. El front los formatea al mostrarlos con `Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' })`.
-- **Fechas:** `YYYY-MM-DD` (por ejemplo `"2026-10-19"`). Meses: `YYYY-MM` (por ejemplo `"2026-10"`); en la base se guardan como el día 1 del mes. Fecha y hora: ISO 8601 con zona (`2026-10-19T14:30:00-03:00`). Zona horaria del sistema: America/Argentina/Buenos_Aires.
-- **Envoltorio en el cuerpo:** al crear o modificar, los datos van dentro del nombre del recurso: `{ "expense": { "amount_cents": 250000 } }`. Las rutas de auth no lo usan.
-- **Paginación** en los listados de movimientos: `?page=1&per_page=50` (máximo 50). La respuesta trae `meta`:
-  ```json
-  { "data": [ ... ], "meta": { "page": 1, "per_page": 50, "total_count": 120, "total_pages": 3 } }
+- **URL base:** `<API_URL>/api/v1`. En desarrollo, `http://localhost:3000/api/v1`. En el front, esta URL va en una variable de entorno, nunca escrita en el código.
+- **`Content-Type: application/json`:** es **obligatorio** en todos los `POST` y `PATCH`. En los `GET` y `DELETE` no hace falta.
+- **Autenticación:** JWT. Se obtiene con `POST /login` o `POST /register` y se envía en cada pedido protegido:
+
   ```
-- **Respuestas con un solo recurso:** el objeto directo, sin envoltorio. **Listados:** `{ "data": [...] }` (con `meta` cuando está paginado).
-- **Errores:** siempre el mismo formato. `field` es el campo con el problema, o `"base"` si el error es general:
-  ```json
-  { "errors": [ { "field": "amount_cents", "message": "debe ser mayor a 0" } ] }
+  Authorization: Bearer <TOKEN>
   ```
 
-**Códigos HTTP**
+  El token **vence a las 24 horas**. `POST /login` y `POST /register` devuelven `expires_at` (ISO 8601, en UTC: por ejemplo `2026-10-27T06:14:00Z`) para avisar al usuario antes de que se caiga la sesión. `DELETE /logout` lo invalida antes. Aun así, el front tiene que manejar un `401` en cualquier pedido: el token puede dejar de servir antes, por ejemplo si se cierra la sesión desde otro dispositivo.
+- **Parámetro de ruta `:id`:** siempre es un entero positivo. Un `:id` que no existe o es de otro usuario devuelve `404`.
+- **Montos:** se devuelven como **string decimal** (por ejemplo `"450000.0"`). Al enviar, se aceptan números.
+- **Fechas:** solo se admite `YYYY-MM-DD`. Los períodos, `YYYY-MM`. Una fecha que no existe (`2026-02-30`) devuelve `422` con `field` `date` y el mensaje "no puede estar en blanco": la API no distingue entre una fecha vacía y una inexistente. Con otros formatos (por ejemplo `05/09/2026`) el resultado **no está garantizado**: Rails puede interpretarlos y guardar otra fecha sin dar error, así que el front siempre envía el formato ISO.
+- **Recurso de otro usuario:** devuelve `404`, no `403`, para no revelar que existe.
+- **Valores cerrados:** `purchase_channel` es `presencial`, `delivery` o `retiro`. `unit` (en los ítems de un gasto) es `unidad`, `kg` o `g`. La API devuelve estos códigos tal cual; el front los traduce para mostrarlos.
+- **CORS:** la API acepta pedidos del origen configurado en la variable de entorno `FRONTEND_URL` (en desarrollo, `http://localhost:5173`) y acepta el header `Authorization`. El origen se nombra siempre de forma explícita, nunca con `*`.
+- **Alcance actual:** el comercio (`vendor_id`) no se usa: el front lo ignora y no hay endpoint para listar comercios (puede traer valor si el gasto se cargó desde el panel admin). Las categorías son planas (`parent_id` y `tracks_installments` valen siempre `null`) y el front los ignora.
 
-| Código | Cuándo |
-|---|---|
-| `200 OK` | Lectura o modificación correcta |
-| `201 Created` | Recurso creado |
-| `204 No Content` | Eliminación correcta (sin cuerpo) |
-| `401 Unauthorized` | Falta el token, es inválido, venció o fue revocado |
-| `404 Not Found` | El recurso no existe o es de otro usuario |
-| `422 Unprocessable Entity` | Datos inválidos (validaciones) |
-| `429 Too Many Requests` | Demasiados intentos de login (bloqueo de 5 minutos tras 5 fallos) |
+## Cómo reproducir los ejemplos
+
+Los ejemplos usan marcadores entre `<>` que hay que reemplazar. Los `id` que aparecen en las respuestas son solo ilustrativos: dependen del orden en que se crearon los datos.
+
+| Marcador | Qué poner |
+|----------|-----------|
+| `<TOKEN>` | el `token` que devuelve `POST /login` |
+| `<CATEGORY_ID>` | un `id` de `GET /categories` (en el JSON va como número, sin comillas) |
+| `<EXPENSE_ID>` / `<INCOME_ID>` | el `id` que devolvió el `POST` correspondiente |
+
+Con una base nueva (`bin/rails db:setup`), el seed (`db/seeds.rb`) crea el usuario `admin`, las dos categorías de ejemplo (Supermercado y Limpieza) y, fuera de producción, un usuario de demostración (`demo`) con ingresos y gastos. Las credenciales están en el README. Si la base ya existe, alcanza con `bin/rails db:seed`: se puede correr más de una vez sin duplicar datos. La API no tiene endpoint para crear categorías: las nuevas se cargan desde el panel web `/admin/categories` (con el usuario admin) o con `bin/rails console`.
+
+## Formato de errores
+
+Todos los errores usan la misma forma, igual que el contrato del TFI. `field` es el campo con el problema, o `"base"` si el error es general. `message` está en español y se puede mostrar al usuario:
+
+```json
+{ "errors": [ { "field": "amount", "message": "debe ser mayor a 0" } ] }
+```
+
+El front usa `field` para marcar el campo del formulario con error. Si `field` es `"base"`, muestra el mensaje como aviso general.
+
+Reglas:
+
+- El `field` se llama igual que el campo que el front envió (por ejemplo `category_id`, no `category`).
+- Un `422` trae **todos** los errores de validación juntos, no solo el primero.
+- Excepción conocida: los errores de los ítems de un gasto llegan como `expense_items.name`, no como `expense_items_attributes[0][name]`. El error **no dice de qué ítem viene**: el front no puede saber cuál de la lista tiene el problema y tiene que mostrar el mensaje de forma general.
+
+| HTTP | Cuándo ocurre | Ejemplo de `field` y `message` |
+|:----:|---------------|-------------------------------|
+| 400 | El cuerpo no es un JSON válido (`falta`) | `base` — "JSON mal formado" |
+| 401 | Falta el token, es inválido, venció o se cerró la sesión | `base` — "No autorizado" |
+| 401 | Usuario o contraseña incorrectos en el login | `base` — "Usuario o contraseña incorrectos" |
+| 403 | El usuario no tiene permiso (por ejemplo, no es admin) | `base` — "Acceso denegado" |
+| 404 | El recurso no existe o es de otro usuario | `base` — "No encontrado" |
+| 422 | Datos de entrada inválidos | el campo y su problema, por ejemplo `amount` — "debe ser mayor a 0" |
+
+El `404` de cualquier endpoint con `:id` responde:
+
+```json
+{ "errors": [ { "field": "base", "message": "No encontrado" } ] }
+```
+
+## Resumen de endpoints
+
+| Método | Ruta | Protegido | Permiso | Estado |
+|--------|------|:---------:|---------|:------:|
+| POST | `/login` | No | — | existe |
+| DELETE | `/logout` | Sí | cualquier usuario | existe |
+| POST | `/register` | No | — | existe |
+| GET | `/me` | Sí | cualquier usuario | existe |
+| GET | `/dashboard` | Sí | cualquier usuario | existe |
+| GET | `/savings` | Sí | cualquier usuario | existe |
+| GET | `/categories` | Sí | cualquier usuario | existe |
+| GET | `/categories/:id/comparison` | Sí | cualquier usuario | existe |
+| GET | `/statistics` | Sí | cualquier usuario | existe |
+| GET | `/statistics/monthly_comparison` | Sí | cualquier usuario | existe |
+| POST | `/categories` | Sí | solo admin | existe |
+| PATCH | `/categories/:id` | Sí | solo admin | existe |
+| DELETE | `/categories/:id` | Sí | solo admin | existe |
+| GET | `/expenses` | Sí | cualquier usuario | existe |
+| POST | `/expenses` | Sí | cualquier usuario | existe |
+| PATCH | `/expenses/:id` | Sí | dueño del gasto o admin | existe |
+| DELETE | `/expenses/:id` | Sí | dueño del gasto o admin | existe |
+| GET | `/incomes` | Sí | cualquier usuario | existe |
+| POST | `/incomes` | Sí | cualquier usuario | existe |
+| PATCH | `/incomes/:id` | Sí | dueño del ingreso o admin | existe |
+| DELETE | `/incomes/:id` | Sí | dueño del ingreso o admin | existe |
+| GET | `/savings_goals` | Sí | cualquier usuario | existe |
+| POST | `/savings_goals` | Sí | cualquier usuario | existe |
+| PATCH | `/savings_goals/:id` | Sí | mismo grupo familiar o admin | existe |
+| DELETE | `/savings_goals/:id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/installment_purchases` | Sí | cualquier usuario | existe |
+| POST | `/installment_purchases` | Sí | cualquier usuario | existe |
+| PATCH | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
+| DELETE | `/installment_purchases/:id` | Sí | mismo grupo familiar o admin | existe |
+| GET | `/installment_purchases/monthly_total` | Sí | cualquier usuario | existe |
+| GET | `/installment_settings` | Sí | cualquier usuario | existe |
+| PATCH | `/installment_settings` | Sí | cualquier usuario | existe |
+| GET | `/shopping_list_items` | Sí | cualquier usuario | existe |
+| POST | `/shopping_list_items` | Sí | cualquier usuario | existe |
+| PATCH | `/shopping_list_items/:id` | Sí | mismo grupo familiar o admin | existe |
+| DELETE | `/shopping_list_items/:id` | Sí | mismo grupo familiar o admin | existe |
+| POST | `/shopping_list_items/copy` | Sí | cualquier usuario | existe |
+| GET | `/users` | Sí | solo admin | existe |
+
+Esta tabla lista solo lo que existe hoy. Los endpoints que todavía no existen están en [Endpoints planificados](#endpoints-planificados).
+
+## Formas de las respuestas
+
+Cada recurso se define una sola vez acá; los endpoints lo referencian por su nombre. La columna **Puede ser `null`** indica si el front tiene que contemplar ese valor.
+
+### Usuario
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `user` | string | No | nombre de usuario |
+| `email` | string | **Sí** | el admin del seed no tiene email |
+| `admin` | boolean | No | `true` si es administrador. Sirve solo para decidir qué mostrar; los permisos los controla siempre la API |
+
+### Categoría
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `name` | string | No | nombre |
+| `parent_id` | integer | **Sí** | id de la categoría padre; `null` si es una categoría principal |
+| `tracks_installments` | boolean | **Sí** | `null` si no se indicó |
+
+### Gasto
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `amount` | string decimal | No | monto total. Si hay ítems, es la suma de sus `subtotal` |
+| `date` | string `YYYY-MM-DD` | No | fecha del gasto |
+| `description` | string | **Sí** | texto libre |
+| `is_fixed` | boolean | No | `true` si es un gasto fijo |
+| `purchase_channel` | string | No | `presencial`, `delivery` o `retiro` |
+| `user` | objeto `{ id, user }` | No | a quién pertenece |
+| `vendor_id` | integer | **Sí** | el front lo ignora. Puede traer valor si el gasto se cargó desde el panel admin |
+| `category` | objeto `{ id, name }` | No | categoría |
+| `expense_items` | array de Ítem | No | puede venir vacío (`[]`) |
+
+### Ítem de gasto
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `name` | string | No | nombre del producto |
+| `quantity` | integer | No | cantidad, entera y mayor a 0 |
+| `unit` | string | No | `unidad`, `kg` o `g` |
+| `unit_price` | string decimal | No | precio por unidad, mayor o igual a 0 |
+| `subtotal` | string decimal | No | `quantity × unit_price` |
+
+### Ingreso
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `amount` | string decimal | No | monto |
+| `date` | string `YYYY-MM-DD` | No | fecha del ingreso |
+| `user` | objeto `{ id, user }` | No | a quién pertenece. Importa para el admin, que ve los de todos. Lo traen todos los endpoints de ingresos y `incomes` dentro de `GET /dashboard` |
+
+### Meta de ahorro
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `name` | string | No | nombre de la meta |
+| `target_amount` | string decimal | No | monto que se quiere juntar |
+| `saved_amount` | string decimal | No | monto ahorrado hasta ahora |
+| `deadline` | string `YYYY-MM-DD` | **Sí** | fecha límite, si la hay |
+| `progress_percentage` | integer | No | **calculado, no se guarda**: `saved_amount / target_amount × 100`, redondeado. Puede superar `100` si se ahorró más que el objetivo |
+
+### Ítem de la lista de gastos fijos
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `name` | string | No | qué se planifica comprar o pagar |
+| `period` | string `YYYY-MM` | No | mes al que corresponde |
+| `quantity` | string decimal | **Sí** | cantidad |
+| `estimated_unit_price` | string decimal | No | precio unitario estimado |
+| `subtotal` | string decimal | No | **calculado, no se guarda**: `quantity × estimated_unit_price` (`0` si no hay cantidad) |
+| `purchased` | boolean | No | si ya se compró. Por defecto `false` |
+| `category` | objeto `{ id, name }` | No | categoría del ítem |
+
+### Compra en cuotas
+
+| Campo | Tipo | Puede ser `null` | Qué es |
+|-------|------|:----------------:|--------|
+| `id` | integer | No | identificador |
+| `description` | string | No | qué se compró |
+| `total_amount` | string decimal | No | monto total de la compra |
+| `installments_count` | integer | No | cantidad de cuotas, de 1 a 48 |
+| `first_period` | string `YYYY-MM` | No | mes de la primera cuota |
+| `category_id` | integer | No | categoría |
+| `vendor_id` | integer | **Sí** | comercio, si se informó |
+| `interest_rate` | string decimal | No | interés total de la compra, en % (de 0 a 100; `0` = sin interés) |
+| `total_with_interest` | string decimal | No | **calculado**: `total_amount` con el interés sumado, redondeado a 2 decimales |
+| `installment_amount` | string decimal | No | **calculado**: `total_with_interest / installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta |
+| `remaining_installments` | integer | No | **calculado**: cuotas que faltan hasta el mes actual (nunca menos de `0`) |
 
 ---
 
-## 2. Autenticación y perfil
+## Autenticación
 
-El token es una cadena opaca que dura **30 días**. Se guarda hasheado en el servidor (tabla `sessions`), lo que permite invalidarlo al cerrar sesión.
+### `POST /login`
 
-### `POST /auth/register` — pública
-Crea la cuenta, carga las categorías por defecto y deja al usuario autenticado.
+Público. Devuelve el token, cuándo vence y los datos del usuario (la misma forma que `GET /me`).
 
-Body:
-```json
-{ "name": "Norali", "email": "norali@example.com", "password": "clave12345", "password_confirmation": "clave12345" }
+El nombre de usuario no distingue mayúsculas de minúsculas ni espacios al principio o al final (`demo`, `Demo` y ` DEMO ` son el mismo usuario). La contraseña sí distingue mayúsculas.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `user` | string | Sí | nombre de usuario (se guarda en minúsculas y sin espacios alrededor) |
+| `password` | string | Sí | — |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"user":"admin","password":"admin1234"}'
 ```
-Respuesta `201`:
+
+`200`:
+
 ```json
 {
-  "token": "Vq3p...",
-  "expires_at": "2026-11-18T10:00:00-03:00",
-  "user": { "id": 1, "name": "Norali", "email": "norali@example.com" }
-}
-```
-Errores `422`: correo con formato inválido, contraseña de menos de 8 caracteres, confirmación distinta, correo ya registrado (mensaje genérico, sin revelar datos de la cuenta existente).
-
-### `POST /auth/login` — pública
-Body: `{ "email": "norali@example.com", "password": "clave12345" }`
-Respuesta `200`: igual que el registro.
-Errores: `401` con `{ "errors": [ { "field": "base", "message": "Correo o contraseña incorrectos" } ] }` (sin decir cuál falló). `429` tras 5 intentos fallidos desde el mismo origen.
-
-### `DELETE /auth/logout`
-Invalida el token usado. Respuesta `204`. Cualquier pedido posterior con ese token devuelve `401`.
-
-### `GET /me`
-Respuesta `200`:
-```json
-{ "id": 1, "name": "Norali", "email": "norali@example.com", "created_at": "2026-10-19T10:00:00-03:00" }
-```
-
-### `PATCH /me`
-Edita el nombre y/o la contraseña. El correo no se puede modificar en esta versión.
-Body (todos opcionales): `{ "name": "Norali G.", "current_password": "...", "password": "nueva12345", "password_confirmation": "nueva12345" }`
-Para cambiar la contraseña `current_password` es obligatoria. Respuesta `200` con el usuario. Errores `422`.
-
-### `POST /auth/password/forgot` — pública
-Body: `{ "email": "norali@example.com" }`. Responde **siempre** `200` con `{ "message": "Si el correo existe, te enviamos un enlace" }`. El enlace es de un solo uso y vence a las 2 horas.
-
-### `POST /auth/password/reset` — pública
-Body: `{ "token": "<token del enlace>", "password": "nueva12345", "password_confirmation": "nueva12345" }`. Respuesta `200`. Invalida todas las sesiones abiertas del usuario. Error `422` si el token venció o ya se usó.
-
-### `GET /me/settings` y `PATCH /me/settings`
-Configuración del usuario.
-```json
-{
-  "small_expense_threshold_cents": 500000,
-  "budget_alert_percent": 80,
-  "card_due_alert_days": 3,
-  "email_alerts": false,
-  "needs_percent": 50,
-  "wants_percent": 30,
-  "savings_percent": 20
-}
-```
-`needs_percent + wants_percent + savings_percent` debe ser 100 (si no, `422`). `budget_alert_percent` va de 1 a 100. `PATCH` acepta cualquier subconjunto de campos.
-
----
-
-## 3. Categorías
-
-**Objeto categoría**
-```json
-{
-  "id": 3,
-  "name": "Alimentos",
-  "color": "#16A34A",
-  "bucket": "needs",
-  "parent_id": null,
-  "favorite": false,
-  "position": 0,
-  "expenses_count": 12
-}
-```
-- `bucket`: `needs` (necesidad), `wants` (deseo) o `null` (sin clasificar). **El ahorro no es una clasificación de categoría**: se registra con aportes (sección 8).
-- `parent_id`: id de la categoría padre. Solo un nivel de anidamiento: una subcategoría no puede tener hijas.
-
-### `GET /categories`
-Lista todas las categorías del usuario (planas, ordenadas por `favorite` desc, `position`, `name`). Cada una incluye `expenses_count`. Respuesta `200`: `{ "data": [ {...}, ... ] }`.
-
-### `POST /categories`
-Body:
-```json
-{ "category": { "name": "Mascotas", "color": "#F59E0B", "bucket": "wants", "parent_id": null } }
-```
-Obligatorio: `name`. Respuesta `201` con la categoría.
-Errores `422`: nombre vacío, nombre repetido dentro del mismo nivel, `bucket` inválido, `parent_id` que ya es una subcategoría.
-
-### `GET /categories/:id`
-Respuesta `200` con la categoría. Incluye `expenses_count` para que el front pueda avisar cuántos movimientos se verían afectados antes de borrar.
-
-### `PATCH /categories/:id`
-Body: cualquier subconjunto de `name`, `color`, `bucket`, `parent_id`, `favorite`, `position`. Respuesta `200`.
-Error `422` si se intenta marcar como favorita una sexta categoría (máximo 5 favoritas).
-
-### `DELETE /categories/:id`
-Query opcional: `?reassign_to=<category_id>`.
-- Con `reassign_to`: los gastos y las compras en cuotas de la categoría pasan a esa categoría.
-- Sin `reassign_to`: quedan **sin categoría** (se muestran como "sin clasificar").
-
-Los presupuestos de la categoría borrada se eliminan. Respuesta `204`. Error `422` si la categoría tiene subcategorías (hay que borrarlas o moverlas primero).
-
----
-
-## 4. Gastos e ingresos
-
-Un **gasto** es un pago único: efectivo, débito, transferencia o tarjeta **en 1 pago**. Una compra en cuotas **no** crea un gasto: se registra en la sección 6 y sus cuotas impactan en el mes en que se cobran.
-
-### Gastos — objeto
-```json
-{
-  "id": 10,
-  "amount_cents": 420000,
-  "spent_on": "2026-10-19",
-  "description": "Café",
-  "payment_method": "cash",
-  "note": null,
-  "category_id": 7,
-  "card_id": null,
-  "card_statement_id": null,
-  "recurring_rule_id": null,
-  "receipt_url": null,
-  "created_at": "2026-10-19T10:15:00-03:00"
-}
-```
-`payment_method`: `cash`, `debit`, `transfer`, `credit_card`. Si es `credit_card`, `card_id` es obligatorio y el gasto se imputa al resumen de la tarjeta según su fecha de cierre (`card_statement_id` lo asigna el servidor). `recurring_rule_id` viene lleno cuando el gasto lo generó una regla recurrente.
-
-| Método y ruta | Descripción |
-|---|---|
-| `GET /expenses` | Lista paginada con filtros (ver abajo) |
-| `POST /expenses` | Crea un gasto |
-| `GET /expenses/:id` | Detalle |
-| `PATCH /expenses/:id` | Modifica cualquier campo |
-| `DELETE /expenses/:id` | Elimina (`204`) |
-| `POST /expenses/:id/receipt` | Adjunta el comprobante (`multipart/form-data`, campo `file`; JPG, PNG o PDF, máx. 5 MB) |
-| `DELETE /expenses/:id/receipt` | Quita el comprobante sin borrar el gasto |
-
-**Carga rápida** (`POST /expenses`): solo `amount_cents` y `category_id` son obligatorios; `spent_on` toma por defecto el día de hoy y `payment_method` el valor `cash`.
-```json
-{ "expense": { "amount_cents": 420000, "category_id": 7 } }
-```
-Respuesta `201`: incluye además `"statement_preview"` cuando el medio de pago es tarjeta, indicando en qué resumen cae el gasto.
-Errores `422`: monto menor o igual a 0, fecha posterior a hoy, `credit_card` sin `card_id`, `category_id` inexistente.
-
-Al crear un gasto, el servidor revisa los presupuestos del mes y, si se alcanzó un umbral, registra una alerta (sección 7).
-
-**Filtros de `GET /expenses`** (todos opcionales): `from`, `to` (fechas), `category_id`, `payment_method`, `min_amount_cents`, `max_amount_cents`, `q` (texto en la descripción), `page`, `per_page`. Orden fijo: fecha descendente.
-La respuesta suma al `meta` el total de lo filtrado: `"total_amount_cents": 15230000`.
-
-### Ingresos — objeto
-```json
-{ "id": 4, "amount_cents": 85000000, "received_on": "2026-10-01", "description": "Sueldo", "source": "salary", "recurring_rule_id": null }
-```
-`source`: `salary`, `fees`, `sale`, `other`.
-
-| Método y ruta | Descripción |
-|---|---|
-| `GET /incomes` | Lista paginada. Filtros: `from`, `to`, `source`, `min_amount_cents`, `max_amount_cents`, `q` |
-| `POST /incomes` | Crea. Obligatorios: `amount_cents`, `received_on` |
-| `GET /incomes/:id`, `PATCH /incomes/:id`, `DELETE /incomes/:id` | Detalle, modificación, baja |
-
-### Listado combinado
-`GET /movements` — gastos e ingresos juntos, solo lectura, por fecha descendente. Filtros: los de gastos más `type` (`expense` o `income`). Cada elemento trae `"type"`. No incluye aportes de ahorro ni cuotas (esos se ven en sus secciones).
-
-### Movimientos recurrentes
-Una regla recurrente **genera** gastos o ingresos en cada fecha. Solo cuenta contra un presupuesto a través de los gastos que genera.
-
-Objeto:
-```json
-{
-  "id": 2, "kind": "expense", "amount_cents": 1500000, "description": "Alquiler",
-  "category_id": 5, "payment_method": "transfer", "card_id": null, "source": null,
-  "frequency": "monthly", "starts_on": "2026-10-05", "ends_on": null,
-  "next_run_on": "2026-11-05", "last_run_on": "2026-10-05", "active": true
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "expires_at": "2026-10-27T06:14:00Z",
+  "user": { "id": 1, "user": "admin", "email": null, "admin": true }
 }
 ```
 
-| Método y ruta | Descripción |
-|---|---|
-| `GET /recurring_rules` | Lista las reglas del usuario |
-| `POST /recurring_rules` | Crea una regla: `kind` (`expense`/`income`), `amount_cents`, `description`, `category_id`, `payment_method`/`card_id` (gastos) o `source` (ingresos), `frequency` (`monthly`, `bimonthly`, `quarterly`, `yearly`), `starts_on`, `ends_on` (opcional) |
-| `PATCH /recurring_rules/:id` | Modifica o da de baja (`"active": false`) sin borrar lo ya generado |
-| `DELETE /recurring_rules/:id` | Elimina la regla (los movimientos generados se conservan) |
+`401` con credenciales incorrectas:
 
-Errores `422`: `ends_on` anterior a `starts_on`, `frequency` inválida, `kind: expense` sin `payment_method`.
+```json
+{ "errors": [ { "field": "base", "message": "Usuario o contraseña incorrectos" } ] }
+```
 
----
+### `POST /register`
 
-## 5. Tarjetas
+Público. Crea una cuenta de usuario común y devuelve su token. Si el pedido incluye `admin` o `family_group_id`, se ignoran.
 
-Objeto: `id`, `nickname`, `issuer`, `last_four`, `closing_day` (1–31), `due_day` (1–31), `credit_limit_cents` (opcional), `active`. **Nunca** se guarda el número completo ni el código de seguridad.
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `user` | string | Sí | único |
+| `email` | string | Sí | formato válido, único (sin distinguir mayúsculas) |
+| `password` | string | Sí | mínimo 8 caracteres |
+| `password_confirmation` | string | Sí | igual a `password` |
 
-| Método y ruta | Descripción |
-|---|---|
-| `GET /cards`, `POST /cards`, `GET /cards/:id`, `PATCH /cards/:id` | Alta, lectura y edición |
-| `DELETE /cards/:id` | Si tiene consumos, no se elimina: queda inactiva (`active: false`). Sin consumos, se elimina |
-| `GET /cards/:id/statements` | Resúmenes de la tarjeta. Filtro `?period=YYYY-MM` |
-| `GET /card_statements/:id` | Detalle del resumen (ver abajo) |
-| `GET /card_statements/:id/payments` | Pagos registrados de ese resumen |
-| `POST /card_statements/:id/payments` | Registra un pago (total o parcial) |
+```bash
+curl -X POST http://localhost:3000/api/v1/register \
+  -H "Content-Type: application/json" \
+  -d '{"user":"prueba1","email":"prueba1@example.com","password":"clave1234","password_confirmation":"clave1234"}'
+```
 
-**Resumen de tarjeta.** El resumen es lo que hay que pagar. Su total **no se guarda**: se calcula con los gastos con tarjeta y las cuotas que caen en el período.
+`201`:
+
 ```json
 {
-  "id": 8, "card_id": 2, "period": "2026-10", "closing_on": "2026-10-25", "due_on": "2026-11-05",
-  "total_cents": 8500000, "paid_cents": 3000000, "status": "partial",
-  "expenses": [ { "id": 10, "description": "Super", "amount_cents": 420000, "spent_on": "2026-10-19" } ],
-  "installments": [ { "id": 31, "description": "Heladera", "number": 2, "of": 6, "amount_cents": 1200000 } ]
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "expires_at": "2026-10-27T06:14:00Z",
+  "user": { "id": 5, "user": "prueba1", "email": "prueba1@example.com", "admin": false }
 }
 ```
-`status`: `pending` (nada pagado), `partial`, `paid`, `overdue` (vencido con saldo).
 
-**Pago.** El pago es lo que efectivamente se pagó. Un resumen puede tener varios.
-`POST /card_statements/:id/payments`
-```json
-{ "payment": { "paid_on": "2026-11-05", "amount_cents": 3000000, "interest_cents": 0 } }
-```
-Respuesta `201` con el pago. Errores `422`: monto menor o igual a 0, `interest_cents` negativo, fecha posterior a hoy.
+`422` con datos inválidos:
 
----
-
-## 6. Compras en cuotas
-
-Una compra en cuotas **no crea un gasto**. El servidor genera sus cuotas, y cada cuota impacta en el mes de `billing_month`. En los informes y en los presupuestos se suman gastos más cuotas.
-
-Objeto:
 ```json
 {
-  "id": 5, "description": "Heladera", "total_amount_cents": 7200000, "installments_count": 6,
-  "purchased_on": "2026-09-10", "card_id": 2, "category_id": 9,
-  "installments": [
-    { "number": 1, "amount_cents": 1200000, "billing_month": "2026-10", "card_statement_id": 8, "paid": true }
+  "errors": [
+    { "field": "user", "message": "ya está en uso" },
+    { "field": "email", "message": "ya está en uso" }
   ]
 }
 ```
-- `installments_count` es un entero mayor a 1 (con 1 pago es un gasto común).
-- **Redondeo:** el total se divide por la cantidad de cuotas y la diferencia de redondeo se suma a la **última** cuota, así la suma da exacto el total.
-- `paid` es `true` cuando el resumen de esa cuota está pagado por completo.
 
-| Método y ruta | Descripción |
-|---|---|
-| `GET /installment_purchases` | Lista con cuota actual sobre total. Filtro `?status=active|finished` |
-| `POST /installment_purchases` | Crea la compra y genera las cuotas |
-| `GET /installment_purchases/:id` | Detalle con cada cuota y su estado |
-| `PATCH /installment_purchases/:id` | Recalcula las cuotas aún no pagadas y conserva las pagadas |
-| `DELETE /installment_purchases/:id` | Elimina la compra y sus cuotas pendientes; si hay cuotas en resúmenes cerrados exige `?confirm=true` |
-| `GET /commitments` | Compromiso futuro: total por cada uno de los próximos 12 meses, con detalle |
-| `POST /installment_purchases/simulate` | Simula sin guardar: `{ "total_amount_cents": 12000000, "installments_count": 6 }` |
+### `DELETE /logout`
 
-Errores `422`: `installments_count` menor o igual a 1, monto menor o igual a 0, tarjeta inexistente o inactiva.
+Protegido. Invalida el token usado y cualquier otro emitido antes para ese usuario. Cierra la sesión en todos los dispositivos, a propósito: si alguien copió un token, el logout lo invalida igual.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/logout -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. Si se reutiliza el token, `401`:
+
+```json
+{ "errors": [ { "field": "base", "message": "No autorizado" } ] }
+```
+
+### `GET /me`
+
+Protegido. Devuelve el usuario del token. Sirve para que el front sepa quién está logueado y si es admin al recargar la página.
+
+```bash
+curl http://localhost:3000/api/v1/me -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (forma **Usuario**):
+
+```json
+{ "id": 5, "user": "prueba1", "email": "prueba1@example.com", "admin": false }
+```
 
 ---
 
-## 7. Presupuestos
+## Dashboard
 
-Un presupuesto es un **tope por mes**. Se compara contra lo que realmente se gastó. Puede ser de una categoría o subcategoría, o **general** del mes (`category_id: null`).
+### `GET /dashboard`
 
-Objeto: `id`, `month` (`YYYY-MM`), `amount_cents`, `category_id` (`null` = presupuesto general del mes).
-Reglas: un solo presupuesto por categoría y mes, y uno solo general por mes (`422` si se repite).
+Protegido. Resumen del **mes en curso** del usuario (el admin ve el de todos). Se cumple siempre: `income = consumption + savings`.
 
-| Método y ruta | Descripción |
-|---|---|
-| `GET /budgets?month=YYYY-MM` | Presupuestos del mes |
-| `POST /budgets`, `PATCH /budgets/:id`, `DELETE /budgets/:id` | Alta, modificación, baja |
-| `POST /budgets/copy` | Copia al mes siguiente: `{ "from_month": "2026-10", "to_month": "2026-11" }` |
-| `GET /budgets/progress?month=YYYY-MM` | Presupuestado contra gastado (ver abajo) |
-| `GET /alerts` | Alertas del usuario, ordenadas por fecha (ver abajo) |
-| `PATCH /alerts/:id/read` | Marca una alerta como leída |
+```bash
+curl http://localhost:3000/api/v1/dashboard -H "Authorization: Bearer <TOKEN>"
+```
 
-**Cómo se calcula lo gastado.** Es la suma de los **gastos** del mes más las **cuotas** cuyo `billing_month` es ese mes.
-- El real de una categoría padre incluye a sus subcategorías.
-- El real del presupuesto general es todo lo gastado del mes.
-- Los aportes de ahorro **no** cuentan como gasto.
+`200`:
 
-`GET /budgets/progress`
 ```json
 {
-  "month": "2026-10",
-  "data": [
+  "period": "2026-09",
+  "income": "450000.0",
+  "consumption": "38101.0",
+  "savings": "411899.0",
+  "savings_goal_percentage": 10,
+  "incomes": [
+    { "id": 1, "user": { "id": 1, "user": "admin" }, "amount": "450000.0", "date": "2026-09-01" }
+  ],
+  "consumption_by_category": [
+    { "category_id": 2, "category": "Limpieza", "total": "25000.0", "planned": "30000.0" },
+    { "category_id": 1, "category": "Supermercado", "total": "13101.0", "planned": "0.0" }
+  ],
+  "monthly_savings": [
+    { "month": "2026-09", "income": "450000.0", "consumption": "38101.0", "savings": "411899.0", "accumulated": "411899.0" }
+  ]
+}
+```
+
+| Campo | Qué es |
+|-------|--------|
+| `period` | el mes en curso, `YYYY-MM` |
+| `income`, `consumption`, `savings` | totales del mes. `savings = income - consumption`; puede ser negativo si se gastó más de lo que se ganó |
+| `savings_goal_percentage` | entero de 0 a 100, nunca `null`. Para un usuario recién registrado vale `0` |
+| `incomes` | los ingresos del mes, del más antiguo al más reciente. Cada uno trae `id`, `user` (objeto `{ "id", "user" }`, igual que en el resto de la API), `amount` y `date` |
+| `consumption_by_category` | el consumo del mes (`total`) y lo planificado (`planned`, suma de la lista de gastos fijos del mes) por categoría. Cada fila trae `category_id` (para abrir el detalle en `/categories/:id/comparison`) y `category` (el nombre). Una categoría solo planificada trae `total` en `0.0`. **No tiene un orden garantizado**: el front lo ordena como necesite |
+| `monthly_savings` | los últimos 6 meses, del más antiguo al más reciente |
+| `monthly_savings[].accumulated` | ahorro acumulado: la suma corrida de `savings` dentro de esos 6 meses. El primer mes de la lista parte de 0, así que **no** es el ahorro de toda la vida |
+
+---
+
+## Ahorro
+
+### `GET /savings`
+
+Protegido. El ahorro mes a mes **desde el primer movimiento hasta el mes en curso**: es el detalle completo de lo que `GET /dashboard` resume en `monthly_savings` (solo los últimos 6 meses). El admin ve el de todos. No incluye meses futuros.
+
+```bash
+curl http://localhost:3000/api/v1/savings -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+{
+  "savings_goal_percentage": 10,
+  "months": [
+    { "month": "2026-09", "income": "450000.0", "consumption": "38101.0", "savings": "411899.0", "accumulated": "411899.0" },
+    { "month": "2026-10", "income": "0.0", "consumption": "1000.0", "savings": "-1000.0", "accumulated": "410899.0" }
+  ]
+}
+```
+
+| Campo | Qué es |
+|-------|--------|
+| `savings_goal_percentage` | entero de 0 a 100, nunca `null` (igual que en `GET /dashboard`) |
+| `months` | del mes más antiguo al más reciente; `[]` si todavía no hay ingresos ni gastos. Un mes sin movimientos aparece en cero |
+| `months[].savings` | `income - consumption`; puede ser negativo |
+| `months[].accumulated` | suma corrida de `savings` desde el primer mes de la lista |
+
+---
+
+## Estadísticas
+
+### `GET /statistics`
+
+Protegido, cualquier usuario (el admin ve las de todos). Estadísticas de un año o de un mes de ese año, como las del back-office: consumo, ahorro y gasto hormiga mes a mes, consumo por categoría y detalle del gasto hormiga. **Gasto hormiga:** un producto que se compró y no estaba en la lista de gastos fijos de ese mes. Solo se miran las categorías sin subcategorías.
+
+| Parámetro (query) | Tipo | Obligatorio | Detalle |
+|-------------------|------|:-----------:|---------|
+| `year` | integer | No | de 2000 al año en curso; si falta, el año en curso. Si no es válido: `422` en `year` |
+| `month` | integer, 1 a 12 | No | acota `by_category` y `unplanned` a ese mes. Si no es válido: `422` en `month` |
+
+```bash
+curl "http://localhost:3000/api/v1/statistics?year=2026&month=9" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`:
+
+```json
+{
+  "year": 2026,
+  "month": 9,
+  "available_years": [2026, 2025],
+  "months": [
+    { "month": "2026-08", "income": "1000.0", "consumption": "300.0", "savings": "700.0", "unplanned": "0.0" },
+    { "month": "2026-09", "income": "500.0", "consumption": "700.0", "savings": "-200.0", "unplanned": "70.0" }
+  ],
+  "by_category": [
     {
-      "budget_id": 1, "category_id": null, "parent_id": null,
-      "budgeted_cents": 90000000, "spent_cents": 61000000, "available_cents": 29000000,
-      "percent_used": 67.8, "pace": "on_track"
-    },
+      "category": { "id": 5, "name": "Comida" },
+      "total": "200.0",
+      "percentage": 66.7,
+      "subcategories": [
+        { "category": { "id": 6, "name": "Verduras" }, "real": "150.0", "planned": "100.0",
+          "over_budget": true, "percentage": 50.0 }
+      ]
+    }
+  ],
+  "unplanned": {
+    "total": "70.0",
+    "by_vendor": [ { "vendor": "Coto", "total": "60.0" }, { "vendor": null, "total": "10.0" } ],
+    "items": [
+      { "name": "Cafe", "quantity": 2, "unit_price": "30.0", "subtotal": "60.0",
+        "date": "2026-09-05", "category_id": 4, "vendor": "Coto" }
+    ]
+  }
+}
+```
+
+| Campo | Qué es |
+|-------|--------|
+| `available_years` | del año del primer movimiento al año en curso, del más reciente al más antiguo |
+| `months` | **todos** los meses del año (hasta el mes en curso, si es el año en curso), del más antiguo al más reciente, aunque se pase `month`. `savings = income - consumption`; `unplanned` es el gasto hormiga del mes |
+| `by_category` | el consumo del período (el año, o el mes si se pasa `month`) de las categorías sin subcategorías, agrupado bajo su categoría principal y ordenado de mayor a menor. `percentage` es la parte del consumo total del período, redondeada a un decimal. `planned` suma la lista de gastos fijos de esos meses |
+| `by_category[].subcategories` | una fila por subcategoría, de mayor a menor consumo. `over_budget` es `true` si hay algo planificado y lo real lo supera |
+| `unplanned.by_vendor` | gasto hormiga por comercio, de mayor a menor. `vendor` es `null` si el gasto no tiene comercio |
+| `unplanned.items` | los productos del gasto hormiga del período, del más antiguo al más reciente |
+
+`401` sin token. `422` si `year` o `month` no son válidos (un solo error por pedido).
+
+### `GET /statistics/monthly_comparison`
+
+Protegido. Compara los gastos de dos meses. Por categoría y por producto muestra cuánto cambió el gasto y separa cuánto se debe al **precio** y cuánto a la **cantidad**. Cada usuario ve solo sus propios gastos; el admin ve los de todos.
+
+| Parámetro | Tipo | Obligatorio | Qué es |
+|-----------|------|:-----------:|--------|
+| `to` | string `AAAA-MM` | No | mes que se compara. Por defecto, el mes en curso |
+| `from` | string `AAAA-MM` | No | mes base. Por defecto, el mes anterior a `to`. Tiene que ser distinto de `to` (puede ser posterior) |
+
+```bash
+curl "http://localhost:3000/api/v1/statistics/monthly_comparison?from=2026-10&to=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+Cómo se calculan los efectos de cada producto. Los productos se emparejan por nombre (sin importar mayúsculas ni espacios de más) y unidad; el mismo producto en `kg` y en `g` cuenta como dos productos.
+
+- `quantity_effect` = (cantidad nueva − cantidad vieja) × precio viejo, redondeado a 2 decimales.
+- `price_effect` = `difference` − `quantity_effect`, que equivale a (precio nuevo − precio viejo) × cantidad nueva. Calcularlo así hace que los dos efectos sumen siempre la diferencia exacta.
+- `from_unit_price` y `to_unit_price` son el precio promedio del mes, redondeado a 2 decimales.
+
+Un producto que no estaba en `from` tiene `status` `new` y uno que no está en `to`, `stopped`: en los dos casos toda la diferencia es efecto cantidad. El resto es `bought`.
+
+Por categoría:
+
+- Los gastos de una subcategoría (de cualquier nivel) se suman a su **categoría raíz**.
+- `from_total` y `to_total` salen del importe de cada gasto. `price_effect` y `quantity_effect` son la suma de los de sus productos.
+- `other_effect` es la parte de la diferencia que viene de gastos **sin detalle de productos**. Siempre se cumple `price_effect + quantity_effect + other_effect = difference`.
+- `percent_change` es un número (no un texto) y es `null` si en `from` no hubo gastos de esa categoría.
+
+`200`. En el ejemplo, Comida tiene en octubre 2 kg de arroz a 1500 más 7000 en gastos sin detalle, y en noviembre 3 kg de arroz a 2000 más 6000 sin detalle:
+
+```json
+{
+  "from_period": "2026-10",
+  "to_period": "2026-11",
+  "from_total": "10000.0",
+  "to_total": "12000.0",
+  "difference": "2000.0",
+  "categories": [
     {
-      "budget_id": 2, "category_id": 3, "parent_id": null,
-      "budgeted_cents": 20000000, "spent_cents": 18500000, "own_spent_cents": 9000000, "available_cents": 1500000,
-      "percent_used": 92.5, "pace": "over_pace"
+      "category": { "id": 1, "name": "Comida" },
+      "from_total": "10000.0",
+      "to_total": "12000.0",
+      "difference": "2000.0",
+      "percent_change": 20.0,
+      "price_effect": "1500.0",
+      "quantity_effect": "1500.0",
+      "other_effect": "-1000.0",
+      "products": [
+        {
+          "name": "Arroz", "unit": "kg",
+          "from_quantity": "2.0", "to_quantity": "3.0",
+          "from_unit_price": "1500.0", "to_unit_price": "2000.0",
+          "from_total": "3000.0", "to_total": "6000.0",
+          "difference": "3000.0",
+          "price_effect": "1500.0", "quantity_effect": "1500.0",
+          "status": "bought"
+        }
+      ]
     }
   ]
 }
 ```
-`own_spent_cents` aparece en las categorías padre: lo gastado directamente en ella, sin las subcategorías. `pace`: `under`, `on_track` u `over_pace`, según lo gastado contra los días transcurridos del mes. **No sumar el presupuesto de un padre con el de sus hijos** para sacar totales: el del padre ya los incluye.
 
-**Alertas.** Cuando un presupuesto llega al umbral del usuario (`budget_alert_percent`) o al 100 %, el servidor registra una alerta una sola vez por presupuesto y umbral. Los vencimientos de tarjeta próximos se calculan al consultar.
+Las categorías vienen ordenadas por el cambio más grande (en valor absoluto) y, a igual cambio, por nombre. Los productos, igual.
+
+`422`:
+
+- con `field` `from` o `to` (y el mensaje "no es válido") si el mes no tiene formato `AAAA-MM`. Si los dos están mal, vienen los dos errores juntos;
+- con `field` `to` y el mensaje "debe ser distinto de from" si los dos meses son el mismo.
+
+```json
+{ "errors": [ { "field": "to", "message": "debe ser distinto de from" } ] }
+```
+
+---
+
+## Categorías
+
+### `GET /categories`
+
+Protegido. Lista todas las categorías (globales), ordenadas por nombre. Después de correr el seed devuelve las dos categorías de ejemplo; en una base sin seed devuelve `[]` (ver "Cómo reproducir los ejemplos").
+
+```bash
+curl http://localhost:3000/api/v1/categories -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (forma **Categoría**):
+
+```json
+[
+  { "id": 2, "name": "Limpieza", "parent_id": null, "tracks_installments": null },
+  { "id": 1, "name": "Supermercado", "parent_id": null, "tracks_installments": null }
+]
+```
+
+### `POST /categories`
+
+Protegido, **solo admin** (las categorías son compartidas por todos los usuarios). Un usuario común recibe `403`.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `name` | string | Sí | no puede estar vacío |
+| `parent_id` | integer | No | tiene que ser una categoría que exista |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/categories \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"name":"Tarjetas de crédito"}'
+```
+
+`201`: la categoría creada, con la forma **Categoría**. `422` con datos inválidos:
+
+```json
+{ "errors": [ { "field": "name", "message": "no puede estar en blanco" } ] }
+```
+
+### `PATCH /categories/:id`
+
+Protegido, **solo admin**. Acepta los mismos campos y reglas que `POST`, todos opcionales. Una categoría no puede ser su propio padre ni colgar de una de sus subcategorías (`422` en `parent_id`). `404` si no existe. 
+### `DELETE /categories/:id`
+
+Protegido, **solo admin**. Borra una categoría **sin uso**.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/categories/<CATEGORY_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `422` si la categoría tiene gastos, compras en cuotas, gastos fijos o subcategorías (se perdería ese historial), con el motivo en `base`:
+
+```json
+{ "errors": [ { "field": "base", "message": "No se puede borrar: tiene gastos, compras en cuotas, gastos fijos o subcategorías" } ] }
+```
+
+`403` si no es admin. `404` si no existe.
+
+### `GET /categories/:id/comparison`
+
+Protegido, cualquier usuario. Compara lo **estimado** (la lista de gastos fijos del mes) con lo **real** (los gastos del usuario; el admin ve los de todos) de una categoría en un mes. Es el detalle que el back-office muestra al abrir una categoría.
+
+| Parámetro (query) | Tipo | Obligatorio | Detalle |
+|-------------------|------|:-----------:|---------|
+| `period` | string `YYYY-MM` | No | si falta, el mes en curso. Con otro formato: `422` en `period` |
+
+```bash
+curl "http://localhost:3000/api/v1/categories/<CATEGORY_ID>/comparison?period=2026-09" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`. Si la categoría **no tiene subcategorías**, trae una fila por producto en `items` y `subcategories` vacío:
+
 ```json
 {
-  "data": [
-    { "id": 4, "kind": "budget", "budget_id": 2, "category_id": 3, "threshold_percent": 80, "triggered_at": "2026-10-18T12:00:00-03:00", "read_at": null },
-    { "id": null, "kind": "card_due", "card_statement_id": 8, "due_on": "2026-11-05", "days_left": 3 }
+  "category": { "id": 1, "name": "Supermercado" },
+  "period": "2026-09",
+  "planned_total": "250.0",
+  "real_total": "290.0",
+  "subcategories": [],
+  "items": [
+    { "name": "Arroz", "planned_quantity": "2.0", "planned_unit_price": "100.0", "planned_total": "200.0",
+      "real_quantity": 3, "real_unit_price": "90.0", "real_total": "270.0", "status": "bought" },
+    { "name": "Chicle", "planned_quantity": "0.0", "planned_unit_price": "0.0", "planned_total": "0.0",
+      "real_quantity": 1, "real_unit_price": "20.0", "real_total": "20.0", "status": "unplanned" }
   ]
 }
 ```
 
-Errores `422`: monto menor o igual a 0, mes con formato inválido, presupuesto repetido para esa categoría y mes, `category_id` inexistente.
+Si **tiene subcategorías**, trae una fila por subcategoría (por nombre) en `subcategories` e `items` vacío:
 
----
-
-## 8. Ahorro
-
-El ahorro tiene **metas**. Cada meta recibe **aportes**. Un aporte **no es un gasto**: ingreso = gastos + ahorro. El avance de la meta se calcula, no se guarda.
-
-**Meta**
 ```json
 {
-  "id": 3, "name": "Viaje", "target_amount_cents": 150000000, "target_date": "2027-03-01",
-  "saved_cents": 45000000, "remaining_cents": 105000000, "percent": 30.0, "achieved": false, "contributions_count": 4
-}
-```
-`saved_cents` es la suma de los aportes; `achieved` es `true` cuando `saved_cents >= target_amount_cents`.
-
-| Método y ruta | Descripción |
-|---|---|
-| `GET /savings_goals` | Lista las metas. El `meta` trae `total_saved_cents` |
-| `POST /savings_goals` | Crea una meta. Obligatorios: `name`, `target_amount_cents`. Opcional: `target_date` |
-| `GET /savings_goals/:id` | Detalle con el avance |
-| `PATCH /savings_goals/:id` | Modifica nombre, monto objetivo o fecha |
-| `DELETE /savings_goals/:id` | Elimina la meta y sus aportes. Si tiene aportes exige `?confirm=true` |
-| `GET /savings_goals/:id/contributions` | Aportes de la meta, por fecha descendente |
-| `POST /savings_goals/:id/contributions` | Registra un aporte |
-| `PATCH /savings_contributions/:id`, `DELETE /savings_contributions/:id` | Modifica o elimina un aporte |
-
-**Aporte**
-```json
-{ "contribution": { "amount_cents": 1000000, "contributed_on": "2026-10-20", "note": "Del sueldo" } }
-```
-Errores `422`: monto menor o igual a 0, fecha posterior a hoy, `target_amount_cents` menor o igual a 0, `name` vacío.
-
----
-
-## 9. Informes
-
-Parámetros comunes: `from`, `to` o `month`, y `constant_currency=true` para ver los montos ajustados por inflación. Un solo servicio (`ReportService`) reúne los cálculos.
-
-| Ruta | Descripción |
-|---|---|
-| `GET /reports/summary` | Pantalla principal (ver abajo) |
-| `GET /reports/by_category` | Totales por categoría; cada padre trae sus subcategorías |
-| `GET /reports/monthly_evolution` | Evolución mensual de gastos, ingresos y ahorro |
-| `GET /reports/comparison` | Comparación entre dos períodos |
-| `GET /reports/export?format=csv|pdf` | Exportación del informe. `422` si el formato no existe |
-
-**Reglas de cálculo**
-- **Gastado** = gastos + cuotas del mes (por `billing_month`).
-- **Ahorrado** = suma de aportes del mes.
-- **Saldo sin asignar** = ingresos − gastado − ahorrado.
-- **Variación %** = (actual − anterior) ÷ anterior × 100. Si el anterior es 0, se devuelve `null` ("sin dato").
-- **Moneda constante** = monto nominal × IPC del período base ÷ IPC del período del gasto.
-
-`GET /reports/summary?month=2026-10`
-```json
-{
-  "month": "2026-10",
-  "incomes_cents": 85000000, "spent_cents": 61000000, "saved_cents": 10000000, "unassigned_balance_cents": 14000000,
-  "spent_variation_percent": 4.2,
-  "last_movements": [ ],
-  "upcoming_due_dates": [ ]
+  "category": { "id": 5, "name": "Comida" },
+  "period": "2026-09",
+  "planned_total": "100.0",
+  "real_total": "190.0",
+  "subcategories": [
+    { "category": { "id": 7, "name": "Carnes" }, "planned": "0.0", "real": "40.0", "over_budget": false },
+    { "category": { "id": 6, "name": "Verduras" }, "planned": "100.0", "real": "150.0", "over_budget": true }
+  ],
+  "items": []
 }
 ```
 
-## 10. Análisis
+| Campo | Qué es |
+|-------|--------|
+| `planned_total` | suma de la lista de gastos fijos del mes (de las subcategorías, si tiene) |
+| `real_total` | suma de los gastos del mes de esa categoría (de las subcategorías, si tiene) |
+| `items[].status` | `bought` (estaba planificado y se compró), `unplanned` (se compró y no estaba planificado: gasto hormiga) o `not_bought` (estaba planificado y no se compró) |
+| `items[]` | los productos se emparejan por nombre, sin importar mayúsculas ni espacios en los extremos. `real_unit_price` es el precio promedio de lo comprado |
+| `subcategories[].over_budget` | `true` si hay algo planificado y lo real lo supera |
 
-| Ruta | Descripción |
-|---|---|
-| `GET /analysis/small_expenses` | Gastos hormiga del período: gastos por debajo de `small_expense_threshold_cents`, agrupados por categoría |
-| `GET /analysis/rule_50_30_20` | Distribución real contra la referencia del usuario. Necesidades y deseos salen del `bucket` de la categoría; el ahorro, de los aportes |
-| `GET /analysis/personal_inflation` | Variación del gasto propio por categoría contra el índice de referencia |
-| `GET /price_indices` | Índice mensual de precios (solo lectura): `{ "period": "2026-09", "value": "7250.1234", "source": "INDEC" }` |
-
-**El índice de precios es un dato global**, no es del usuario: se carga desde el back-office (o con una tarea de importación), no desde la API del usuario. Por eso esta API no tiene `POST /price_indices`.
-
-La inflación personal se calcula por categoría. Hacerla por producto requiere registrar los ítems de cada compra, que hoy no están en el alcance.
+`401` sin token. `404` si la categoría no existe. `422` si `period` no tiene el formato `YYYY-MM`.
 
 ---
 
-## 11. Decisiones tomadas en este contrato
+## Gastos
 
-1. **Token opaco con tabla `sessions`** (y no JWT puro) para poder invalidarlo al cerrar sesión, como pide HU-03.
-2. **Montos en centavos enteros** para evitar errores de redondeo, como se enseñó en Programación IV.
-3. **`404` en recursos de otro usuario**, no `403`.
-4. **Todo es personal:** no hay grupos ni gastos compartidos en el alcance.
-5. **Borrado de categorías:** reasignación opcional con `reassign_to`; si no se indica, los movimientos quedan "sin clasificar".
-6. **El ahorro no es un gasto:** se registra con aportes a metas.
-7. **Obligación y pago separados:** el resumen de tarjeta es lo que hay que pagar; el pago es lo que se pagó, y puede ser parcial.
-8. **Los datos derivados no se guardan:** total del resumen, avance de la meta, saldo, estado de pago.
-9. **Los campos de fecha de gastos e ingresos son `spent_on` y `received_on`.**
+### `GET /expenses`
+
+Protegido. Gastos del usuario, del más reciente al más antiguo (el admin ve los de todos).
+
+| Parámetro de consulta | Tipo | Obligatorio | Qué hace |
+|-----------------------|------|:-----------:|----------|
+| `period` | string `YYYY-MM` | No | trae solo los gastos de ese mes. Si viene vacío (`?period=`) se ignora, igual que si no se envía. Si el valor es inválido (por ejemplo `2026-13`), responde `422` con `field` `period` y el mensaje "no es válido" |
+
+La respuesta tiene un tope de **100 gastos**, sin paginación. Si hay más, devuelve los 100 más recientes **sin avisar**: usá `?period` para acotar.
+
+```bash
+curl "http://localhost:3000/api/v1/expenses?period=2026-09" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Gasto**):
+
+```json
+[
+  {
+    "id": 2,
+    "amount": "13101.0",
+    "date": "2026-09-12",
+    "description": "Compra semanal",
+    "is_fixed": false,
+    "purchase_channel": "presencial",
+    "user": { "id": 1, "user": "admin" },
+    "vendor_id": null,
+    "category": { "id": 1, "name": "Supermercado" },
+    "expense_items": [
+      { "id": 1, "name": "Leche", "quantity": 2, "unit": "unidad", "unit_price": "1800.5", "subtotal": "3601.0" },
+      { "id": 2, "name": "Arroz", "quantity": 1, "unit": "unidad", "unit_price": "9500.0", "subtotal": "9500.0" }
+    ]
+  }
+]
+```
+
+### `POST /expenses`
+
+Protegido. El gasto queda a nombre del usuario del token.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `date` | string `YYYY-MM-DD` | Sí | fecha válida (ver "Fechas" en Convenciones) |
+| `category_id` | integer | Sí | tiene que existir |
+| `amount` | number | Sí, si no hay ítems | mayor a 0 |
+| `description` | string | No | — |
+| `vendor_id` | integer | No | no se usa: el front no lo envía |
+| `is_fixed` | boolean | No | por defecto `false` |
+| `purchase_channel` | string | No | `presencial`, `delivery` o `retiro` (por defecto `presencial`) |
+| `expense_items_attributes` | array de ítems | No | ver la tabla de abajo |
+
+Cada ítem de `expense_items_attributes`:
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `name` | string | Sí | no puede estar vacío. Si falta, responde `422` con `field` `expense_items.name` (`falta`: hoy el ítem sin nombre se descarta en silencio) |
+| `quantity` | integer | No | entero mayor a 0; por defecto `1`. **No admite decimales**: para fracciones, usá `g` (1,5 kg = `1500` con `unit` `g`). Un decimal **no da error**: se recorta (`1.5` se guarda como `1` y `0.5` como `0`), así que el front tiene que validarlo antes de enviar |
+| `unit` | string | No | `unidad`, `kg` o `g`; por defecto `unidad` |
+| `unit_price` | number | Sí | mayor o igual a 0 |
+
+Si se envían ítems, el front no envía `amount`: lo calcula el servidor como la suma de `quantity × unit_price`. Si llegaran los dos, gana el calculado y no es un error.
+
+**Ejemplo simple** (sin ítems):
+
+```bash
+curl -X POST http://localhost:3000/api/v1/expenses \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"amount":25000,"date":"2026-09-05","category_id":<CATEGORY_ID>,"description":"Productos de limpieza"}'
+```
+
+`201` (forma **Gasto**):
+
+```json
+{
+  "id": 3,
+  "amount": "25000.0",
+  "date": "2026-09-05",
+  "description": "Productos de limpieza",
+  "is_fixed": false,
+  "purchase_channel": "presencial",
+  "user": { "id": 1, "user": "admin" },
+  "vendor_id": null,
+  "category": { "id": 2, "name": "Limpieza" },
+  "expense_items": []
+}
+```
+
+**Ejemplo con ítems** (el caso más completo para el front):
+
+```bash
+curl -X POST http://localhost:3000/api/v1/expenses \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"date":"2026-09-12","category_id":<CATEGORY_ID>,"description":"Compra semanal","expense_items_attributes":[{"name":"Leche","quantity":2,"unit":"unidad","unit_price":1800.5},{"name":"Arroz","quantity":1,"unit":"unidad","unit_price":9500}]}'
+```
+
+`201`: `amount` es la suma de los subtotales (`3601.0 + 9500.0`).
+
+```json
+{
+  "id": 2,
+  "amount": "13101.0",
+  "date": "2026-09-12",
+  "description": "Compra semanal",
+  "is_fixed": false,
+  "purchase_channel": "presencial",
+  "user": { "id": 1, "user": "admin" },
+  "vendor_id": null,
+  "category": { "id": 1, "name": "Supermercado" },
+  "expense_items": [
+    { "id": 1, "name": "Leche", "quantity": 2, "unit": "unidad", "unit_price": "1800.5", "subtotal": "3601.0" },
+    { "id": 2, "name": "Arroz", "quantity": 1, "unit": "unidad", "unit_price": "9500.0", "subtotal": "9500.0" }
+  ]
+}
+```
+
+`422` con datos inválidos:
+
+```json
+{ "errors": [ { "field": "purchase_channel", "message": "no es válido" } ] }
+```
+
+Un `vendor_id` que no existe devuelve `422` con `field` `vendor_id` y el mensaje "no existe". Un `category_id` que no existe también devuelve `422`, con `field` `category_id` y el mensaje "debe existir". Si hay varios campos inválidos, la API los devuelve todos juntos en la misma respuesta.
+
+### `PATCH /expenses/:id`
+
+Protegido. Edita un gasto. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/expenses/<EXPENSE_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"description":"Compra del sábado"}'
+```
+
+`200`: el gasto actualizado, con la forma **Gasto**. `404` si no existe o no es del usuario. `422` si hay datos inválidos. El `user` del gasto no cambia nunca: un `user_id` enviado se ignora.
+
+**Editar o borrar ítems.** Para modificar un ítem que ya existe, se envía su `id` **y también su `name`**. Para borrarlo, se envía su `id` con `"_destroy": true` (el borrado no necesita `name`). Un ítem sin `id` se crea nuevo. Si el `id` de un ítem no pertenece a ese gasto, la API responde `404`:
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/expenses/<EXPENSE_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"expense_items_attributes":[{"id":1,"name":"Leche","quantity":3},{"id":2,"_destroy":true}]}'
+```
+
+**Atención 1:** un ítem con `id` que llega sin `name` tiene que dar `422`, igual que en `POST`. El borrado (`_destroy`) no necesita `name`. Hoy ese ítem se descarta en silencio, sin error (ver «Qué falta todavía en `main`»: lo resuelve el PR de validación de ítems).
+
+`amount` se recalcula con los ítems que quedan. **Atención 2:** si se borran todos los ítems, el gasto conserva el `amount` anterior; para fijar otro monto, enviá también `amount` en el mismo pedido.
+
+### `DELETE /expenses/:id`
+
+Protegido. Borra un gasto y sus ítems.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/expenses/<EXPENSE_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o no es del usuario.
+
+---
+
+## Ingresos
+
+### `POST /incomes`
+
+Protegido. El ingreso queda a nombre del usuario del token; cualquier `user_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `amount` | number | Sí | mayor a 0 |
+| `date` | string `YYYY-MM-DD` | Sí | fecha válida (ver "Fechas" en Convenciones) |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/incomes \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"amount":450000,"date":"2026-09-01"}'
+```
+
+`201`: el ingreso creado, con la forma **Ingreso**:
+
+```json
+{ "id": 1, "amount": "450000.0", "date": "2026-09-01", "user": { "id": 1, "user": "admin" } }
+```
+
+`422`:
+
+```json
+{ "errors": [ { "field": "amount", "message": "debe ser mayor a 0" } ] }
+```
+
+### `GET /incomes`
+
+Protegido. Ingresos del usuario, del más reciente al más antiguo (el admin ve los de todos, por eso cada uno trae `user`).
+
+```bash
+curl http://localhost:3000/api/v1/incomes -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Ingreso**):
+
+```json
+[
+  { "id": 1, "amount": "450000.0", "date": "2026-09-01", "user": { "id": 1, "user": "admin" } }
+]
+```
+
+### `PATCH /incomes/:id`
+
+Protegido. Edita un ingreso (`amount`, `date`, opcionales). Solo se modifica lo que se envía.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/incomes/<INCOME_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"amount":460000}'
+```
+
+`200`:
+
+```json
+{ "id": 1, "amount": "460000.0", "date": "2026-09-01", "user": { "id": 1, "user": "admin" } }
+```
+
+`404` si no existe o no es del usuario (el admin puede editar los de todos). `422` si hay datos inválidos, igual que en `POST`.
+
+### `DELETE /incomes/:id`
+
+Protegido. Borra un ingreso.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/incomes/<INCOME_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o no es del usuario.
+
+---
+
+## Metas de ahorro
+
+Las metas pertenecen al **grupo familiar** del usuario. Cada usuario registrado por la API tiene su propio grupo, así que ve solo las suyas. El admin ve y modifica las de todos. Una meta de otro grupo responde `404`. El aporte de ahorro **no es consumo**: no cambia el dashboard.
+
+### `GET /savings_goals`
+
+Protegido. Lista las metas, de la más reciente a la más antigua.
+
+```bash
+curl http://localhost:3000/api/v1/savings_goals -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Meta de ahorro**):
+
+```json
+[
+  { "id": 1, "name": "Viaje", "target_amount": "1000.0", "saved_amount": "250.0", "deadline": null, "progress_percentage": 25 }
+]
+```
+
+### `POST /savings_goals`
+
+Protegido. La meta queda en el grupo familiar del usuario; cualquier `family_group_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `name` | string | Sí | no puede estar vacío |
+| `target_amount` | number | Sí | mayor a 0 |
+| `saved_amount` | number | No | mayor o igual a 0; por defecto `0` |
+| `deadline` | string `YYYY-MM-DD` | No | fecha válida |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/savings_goals \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"name":"Notebook","target_amount":800,"deadline":"2027-03-01"}'
+```
+
+`201`: la meta creada, con la forma **Meta de ahorro**:
+
+```json
+{ "id": 2, "name": "Notebook", "target_amount": "800.0", "saved_amount": "0.0", "deadline": "2027-03-01", "progress_percentage": 0 }
+```
+
+`422` con datos inválidos:
+
+```json
+{ "errors": [ { "field": "target_amount", "message": "debe ser mayor a 0" } ] }
+```
+
+### `PATCH /savings_goals/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/savings_goals/<GOAL_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"saved_amount":500}'
+```
+
+`200`: la meta actualizada, con `progress_percentage` recalculado. `404` si no existe o es de otro grupo. `422` si hay datos inválidos. A diferencia del back-office, la API **no envía el mail** de felicitación al cumplir una meta.
+
+### `DELETE /savings_goals/:id`
+
+Protegido.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/savings_goals/<GOAL_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o es de otro grupo.
+
+---
+
+## Compras en cuotas
+
+Igual que las metas, pertenecen al **grupo familiar** del usuario (el admin ve todas; una compra de otro grupo responde `404`). Las cuotas **no crean consumo**: no cambian el dashboard.
+
+### `GET /installment_purchases`
+
+Protegido. Lista las compras, de la más reciente a la más antigua.
+
+```bash
+curl http://localhost:3000/api/v1/installment_purchases -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Compra en cuotas**):
+
+```json
+[
+  {
+    "id": 1, "description": "Heladera", "total_amount": "1200.0", "installments_count": 12,
+    "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+    "interest_rate": "0.0", "total_with_interest": "1200.0",
+    "installment_amount": "100.0", "remaining_installments": 11
+  }
+]
+```
+
+### `POST /installment_purchases`
+
+Protegido.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `description` | string | Sí | no puede estar vacío |
+| `total_amount` | number | Sí | mayor a 0 |
+| `installments_count` | integer | Sí | entero de 1 a 48 |
+| `first_period` | string `YYYY-MM` | Sí | mes válido, por ejemplo `2026-11` |
+| `category_id` | integer | Sí | tiene que existir |
+| `vendor_id` | integer | No | si se envía, tiene que existir |
+| `interest_rate` | number | No | de 0 a 100 (% total de la compra). Por defecto `0` |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/installment_purchases \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"description":"Televisor","total_amount":900,"installments_count":3,"first_period":"2026-11","category_id":<CATEGORY_ID>}'
+```
+
+`201`: la compra creada, con la forma **Compra en cuotas**:
+
+```json
+{
+  "id": 2, "description": "Televisor", "total_amount": "900.0", "installments_count": 3,
+  "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+  "interest_rate": "0.0", "total_with_interest": "900.0",
+  "installment_amount": "300.0", "remaining_installments": 2
+}
+```
+
+El mantenimiento de la tarjeta **no** se envía acá: es del grupo familiar (ver `/installment_settings`). Si se manda `card_monthly_fee` en este pedido, se ignora.
+
+`422` con datos inválidos (por ejemplo, un `first_period` con un mes que no existe):
+
+```json
+{ "errors": [ { "field": "first_period", "message": "debe tener formato AAAA-MM" } ] }
+```
+
+Un `category_id` que no existe da `422` con "debe existir", y un `vendor_id` que no existe, con "no existe". Si hay varios campos inválidos, la API los devuelve todos juntos.
+
+### `PATCH /installment_purchases/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"installments_count":6}'
+```
+
+`200`: la compra actualizada, con `installment_amount` y `remaining_installments` recalculados. `404` si no existe o es de otro grupo. `422` si hay datos inválidos.
+
+### `DELETE /installment_purchases/:id`
+
+Protegido.
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`204`, sin cuerpo. `404` si no existe o es de otro grupo.
+
+### `GET /installment_purchases/monthly_total`
+
+Protegido. Devuelve lo que hay que pagar en un mes: las cuotas que vencen ese mes más el **mantenimiento mensual de la tarjeta**. El mantenimiento se suma **una sola vez** y solo si ese mes vence al menos una cuota. Cuenta las compras del grupo familiar. Con `?period=AAAA-MM` elige el mes; si falta, usa el mes en curso.
+
+```bash
+curl "http://localhost:3000/api/v1/installment_purchases/monthly_total?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (los números son ilustrativos):
+
+```json
+{
+  "period": "2026-11",
+  "installments": [
+    { "id": 1, "description": "Heladera", "installment_amount": "300.0" },
+    { "id": 2, "description": "Televisor", "installment_amount": "720.0" }
+  ],
+  "installments_total": "1020.0",
+  "card_monthly_fee": "3500.0",
+  "total": "4520.0"
+}
+```
+
+Si ese mes no vence ninguna cuota, `card_monthly_fee` vale `0` y `total` es `0`. `422` con `field` `period` si el mes no tiene formato `AAAA-MM`.
+
+### `GET /installment_settings`
+
+Protegido. Devuelve el mantenimiento mensual de la tarjeta, que es un valor del grupo familiar (por defecto `0`).
+
+```bash
+curl http://localhost:3000/api/v1/installment_settings -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`: `{ "card_monthly_fee": "3500.0" }`
+
+### `PATCH /installment_settings`
+
+Protegido. Cambia el mantenimiento mensual de la tarjeta: un monto fijo en pesos que se suma una vez por mes al total de las cuotas. **Si el banco lo modifica, hay que actualizarlo acá** para que los totales sean reales.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `card_monthly_fee` | number | No | mayor o igual a 0. Si no se envía, el valor no cambia |
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/installment_settings \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"card_monthly_fee":3500}'
+```
+
+`200`: `{ "card_monthly_fee": "3500.0" }`. `422` si el monto es negativo o no es un número.
+
+---
+
+## Lista de gastos fijos
+
+Lo planificado de cada mes, por categoría. Pertenece al **grupo familiar** del usuario (cada usuario registrado por la API tiene el suyo). El admin ve y modifica los de todos, salvo en la copia a otro mes, que actúa solo sobre su grupo. Un ítem de otro grupo responde `404`. Lo planificado se compara con el consumo real en `consumption_by_category` de `GET /dashboard` (campo `planned`).
+
+### `GET /shopping_list_items`
+
+Protegido. Lista los ítems ordenados por mes y nombre. Con `?period=AAAA-MM` trae solo ese mes. Con `?status=pending` trae los no comprados y con `?status=purchased` los comprados; sin `status`, todos. Los dos filtros se pueden combinar. Cualquier otro valor de `status` responde `422`:
+
+```json
+{ "errors": [ { "field": "status", "message": "debe ser pending o purchased" } ] }
+```
+
+```bash
+curl "http://localhost:3000/api/v1/shopping_list_items?period=2026-11" -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Ítem de la lista de gastos fijos**):
+
+```json
+[
+  { "id": 1, "name": "Arroz", "period": "2026-11", "quantity": "2.0", "estimated_unit_price": "1500.0", "subtotal": "3000.0", "purchased": false, "category": { "id": 1, "name": "Comida" } }
+]
+```
+
+### `POST /shopping_list_items`
+
+Protegido. El ítem queda en el grupo familiar del usuario; cualquier `family_group_id` enviado se ignora.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `name` | string | Sí | no puede estar vacío |
+| `period` | string `AAAA-MM` | Sí | mes válido, por ejemplo `2026-11` |
+| `quantity` | number | No | mayor a 0 |
+| `estimated_unit_price` | number | Sí | mayor o igual a 0 |
+| `category_id` | integer | Sí | tiene que existir |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/shopping_list_items \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"name":"Fideos","period":"2026-11","quantity":3,"estimated_unit_price":800,"category_id":1}'
+```
+
+`201`: el ítem creado, con la forma **Ítem de la lista de gastos fijos**. El campo `purchased` (boolean) es opcional y por defecto vale `false`; si se envía vacío o `null`, responde `422` con `field` `purchased` y el mensaje "debe ser true o false". `422` con datos inválidos:
+
+```json
+{ "errors": [ { "field": "period", "message": "debe tener formato AAAA-MM" } ] }
+```
+
+### `PATCH /shopping_list_items/:id`
+
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía.
+
+`200`: el ítem actualizado, con `subtotal` recalculado. Con `{"purchased": true}` se marca como comprado y con `false` se desmarca. `404` si no existe o es de otro grupo. `422` si hay datos inválidos.
+
+### `DELETE /shopping_list_items/:id`
+
+Protegido. `204`, sin cuerpo. `404` si no existe o es de otro grupo.
+
+### `POST /shopping_list_items/copy`
+
+Protegido. Copia al mes destino los ítems **no comprados** del mes origen, con su categoría, cantidad y precio estimado; los copiados quedan como no comprados. Actúa siempre sobre el **grupo familiar del usuario**, también si es admin: no toca los ítems de otros grupos. Un ítem se saltea si en el mes destino ya hay uno con el mismo nombre (sin importar mayúsculas ni espacios de más), y tampoco se copian dos veces dos pendientes con el mismo nombre. Devuelve solo los ítems creados.
+
+| Campo | Tipo | Obligatorio | Validación |
+|-------|------|:-----------:|------------|
+| `from_period` | string `AAAA-MM` | Sí | mes válido |
+| `to_period` | string `AAAA-MM` | Sí | mes válido y distinto de `from_period` |
+
+```bash
+curl -X POST http://localhost:3000/api/v1/shopping_list_items/copy \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"from_period":"2026-11","to_period":"2026-12"}'
+```
+
+`201`: la lista de ítems creados en el mes destino, con la forma **Ítem de la lista de gastos fijos** (lista vacía si no había nada para copiar). `422` si un período está mal formado o son iguales:
+
+```json
+{ "errors": [ { "field": "to_period", "message": "debe ser distinto de from_period" } ] }
+```
+
+---
+
+## Usuarios
+
+### `GET /users`
+
+Protegido, **solo admin**. Lista los usuarios. No devuelve contraseñas ni tokens.
+
+```bash
+curl http://localhost:3000/api/v1/users -H "Authorization: Bearer <TOKEN>"
+```
+
+`200` (lista de **Usuario**):
+
+```json
+[
+  { "id": 1, "user": "admin", "email": null, "admin": true }
+]
+```
+
+Con el token de un usuario común, `403`:
+
+```json
+{ "errors": [ { "field": "base", "message": "Acceso denegado" } ] }
+```
+
+---
+
+## Endpoints planificados
+
+Estos endpoints **todavía no existen** en la API: si el front los llama, recibe `404`. El front no usa ninguno. Quedan documentados con la forma acordada para cuando se implementen.
+
+| Método | Ruta | Protegido | Permiso |
+|--------|------|:---------:|---------|
+| GET | `/expenses/:id` | Sí | dueño del gasto o admin |
+
+### `GET /expenses/:id` (planificado)
+
+Protegido. Devuelve un gasto, con la forma **Gasto**.
+
+```bash
+curl http://localhost:3000/api/v1/expenses/<EXPENSE_ID> -H "Authorization: Bearer <TOKEN>"
+```
+
+`200`: un solo objeto, igual a un elemento de la lista de `GET /expenses`. `404` si no existe o no es del usuario.

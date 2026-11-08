@@ -1,24 +1,22 @@
-# GastoClaro
+# GastoClaro — Backend
 
-GastoClaro es una aplicación web de gestión de gastos personales hecha con Ruby on Rails, pensada para dejar atrás las planillas de Excel o las anotaciones en papel, donde es fácil olvidarse de registrar algo. Cada usuario registra sus ingresos y gastos (con detalle por ítem, comercio y canal de compra) organizados por categorías, define metas de ahorro, controla sus compras en cuotas y arma una lista de compras con lo que estima gastar, para después compararla con lo que realmente gastó y saber en qué se le fue la plata. Incluye un back-office web para administrar todo y una API JSON (v1) pensada para clientes externos, por ejemplo una app móvil.
+API REST y back-office de **GastoClaro**, una aplicación para registrar y analizar gastos personales: ingresos, gastos con detalle de productos, compras en cuotas, lista de compras, metas de ahorro y estadísticas. Es el back-end del Trabajo Final Integrador (TFI) de la Tecnicatura Universitaria en Programación, UTN Facultad Regional La Plata (Grupo 4).
 
-**Stack:** Ruby 3.4.10, Rails 8.1, SQLite, Puma, Hotwire (Turbo + Stimulus) e importmap.
+**Stack:** Ruby 3.4.10, Rails 8.1, MySQL 8 (en Docker), Puma, Hotwire (Turbo + Stimulus) e importmap para el back-office.
 
 ## Sobre el proyecto
 
-- **Trabajo:** TP2 de Programación IV (Tecnicatura Universitaria en Programación). Integra este back-end con un front-end propio.
-- **Temática:** gestión de gastos personales (ver la descripción de arriba).
-- **Integrantes:** Norali Gorosito y Nico Ventureira.
-- **Modalidad:** grupal.
-- **Autoría del back-end original:** Norali Gorosito (TP1 individual, que se evolucionó en este TP2).
-- **Front-end:** React, en el repositorio [gastoClaro-front](https://github.com/ventureiranm/gastoClaro-front). Su instalación, versiones, variables de entorno y comandos (pruebas y compilación) están en el README de ese repositorio.
-- **Contrato de la API:** [`api.md`](api.md).
+- **Trabajo:** TFI de la Tecnicatura Universitaria en Programación (UTN FRLP).
+- **Integrantes:** Gorosito Ledesma Flavia Norali (back-end y base de datos), Zunino Juan Carlos (front-end) y Ventureira Nicolás Manuel (análisis funcional y QA).
+- **Tutor:** Ing. Sergio Antonini.
+- **Front-end:** React. Se documenta en el [README de la raíz](../README.md).
+- **Contrato de la API:** [`docs/api/api.md`](../docs/api/api.md).
 
 ## Índice
 
 1. [Requisitos e instalación](#requisitos-e-instalación)
-2. [Datos de prueba y credenciales de demostración](#datos-de-prueba-y-credenciales-de-demostración)
-3. [Back-office (panel de administración)](#back-office-panel-de-administración)
+2. [Datos de prueba](#datos-de-prueba)
+3. [Back-office](#back-office-panel-de-administración)
 4. [API v1](#api-v1)
 5. [Modelo de datos](#modelo-de-datos)
 6. [Calidad y tests](#calidad-y-tests)
@@ -26,126 +24,107 @@ GastoClaro es una aplicación web de gestión de gastos personales hecha con Rub
 
 ## Requisitos e instalación
 
-**Requisitos:** Git y [mise](https://mise.jdx.dev/) para manejar la versión de Ruby. El proyecto declara `ruby-3.4.10` en `.ruby-version`. SQLite viene incluido a través de la gema `sqlite3`.
+**Requisitos:** Git, Docker y [mise](https://mise.jdx.dev/) para manejar la versión de Ruby (el proyecto declara `ruby-3.4.10` en `.ruby-version`).
 
 ```bash
-git clone https://github.com/norali84g-wq/gastoclaro.git
-cd gastoclaro
+git clone https://github.com/norali84g-wq/GastoClaroTFI.git
+cd GastoClaroTFI
 
-mise install ruby@3.4.10      # instala la versión de Ruby del proyecto
-bundle install                # instala las gemas
-bin/rails db:setup            # crea la base, carga el esquema y ejecuta los seeds
+docker compose up -d db          # levanta MySQL 8 (contenedor gastoclaro_db)
+
+cd backend
+mise install ruby@3.4.10         # instala la versión de Ruby del proyecto
+bundle install                   # instala las gemas
+bin/rails db:create db:migrate db:seed
+bin/rails server                 # http://localhost:3000
 ```
 
-Si ya tenés la base creada y solo querés ponerla al día, usá `bin/rails db:prepare`.
+Si `ruby -v` no muestra 3.4.10, ejecutá los comandos con `mise exec -- <comando>` o activá mise en tu shell (`eval "$(mise activate bash)"`).
 
-Si `ruby -v` no muestra 3.4.10 en tu terminal, ejecutá los comandos con `mise exec -- <comando>` (por ejemplo `mise exec -- bin/rails server`) o activá mise en tu shell (`eval "$(mise activate bash)"`).
+**Base de tests:** la primera vez que arranca el contenedor (con el volumen vacío), `docker/mysql/init/` crea `gastoclaro_test` y le da permisos al usuario `gastoclaro`, también para las bases que crean los tests en paralelo (`gastoclaro_test-0`, `gastoclaro_test-1`, ...). Si ya tenías el volumen creado de antes, recrealo con `docker compose down -v && docker compose up -d db` (borra los datos de la base local) o corré a mano, como root, el SQL de ese directorio.
 
-**Levantar el servidor de desarrollo:**
+**Variables de entorno.** Con el MySQL de `docker compose` no hace falta definir ninguna: los valores por defecto de `config/database.yml` ya coinciden con `docker-compose.yml`. Rails **no** lee un archivo `.env`; [`.env.example`](.env.example) es la referencia de las variables. Si tu entorno es distinto, exportá las que cambien antes de levantar Rails (por ejemplo `export DB_PORT=3307`).
 
-```bash
-bin/rails server
-```
+| Variable | Para qué sirve | Por defecto |
+|----------|----------------|-------------|
+| `DB_HOST`, `DB_PORT` | Dónde está MySQL | `127.0.0.1`, `3306` |
+| `DB_USER`, `DB_PASSWORD` | Usuario y contraseña de la base | `gastoclaro`, `gastoclaro` (en producción `DB_PASSWORD` no tiene valor por defecto) |
+| `FRONTEND_URL` | Origen (o lista separada por comas) desde el que el front puede llamar a la API (CORS). Si el front corre en otro puerto: `FRONTEND_URL=http://localhost:5174 bin/rails server` | `http://localhost:5173` en desarrollo y test; en producción es obligatoria |
 
-La app queda en <http://localhost:3000>. En desarrollo, los mails que envía la app (por ejemplo el de felicitación al cumplir una meta de ahorro) se pueden ver en <http://localhost:3000/letter_opener>.
+Los nombres de las bases son fijos: `gastoclaro_development` y `gastoclaro_test`.
 
-**Variables de entorno:**
+**Antes de desplegar:** en `config/deploy.yml` la variable `FRONTEND_URL` está comentada. Hay que descomentarla y poner la URL real del front.
 
-| Variable | Para qué sirve | Valor por defecto |
-|----------|----------------|-------------------|
-| `FRONTEND_URL` | Origen, o lista de orígenes separados por comas, desde los que el front en React puede llamar a la API (CORS). Ejemplo: `https://app.ejemplo.com,http://localhost:5174`. Una barra final se ignora. | En desarrollo y test: `http://localhost:5173` (Vite). **En producción es obligatoria**: sin ella la app no arranca. |
+## Datos de prueba
 
-Si el front corre en otro puerto, levantá el servidor así: `FRONTEND_URL=http://localhost:5174 bin/rails server`.
-
-**Antes de desplegar:** en `config/deploy.yml` la variable `FRONTEND_URL` está comentada. Hay que descomentarla y poner la URL real del front; sin ella la app no arranca en producción.
-
-## Datos de prueba y credenciales de demostración
-
-`bin/rails db:setup` (o `bin/rails db:seed` si la base ya existe) carga los datos de `db/seeds.rb`. Se puede correr más de una vez sin duplicar nada.
+`bin/rails db:seed` carga los datos de `db/seeds.rb` y se puede correr más de una vez sin duplicar nada.
 
 | Usuario | Contraseña | Qué es |
 |---------|------------|--------|
-| `admin` | `admin1234` | Administrador. Entra al back-office y a la API. No tiene email. |
-| `demo` | `demo1234` | Usuario común de demostración (`demo@example.com`), con 2 ingresos y 3 gastos para que el panel muestre datos. **Solo se crea fuera de producción.** |
+| `admin` | `admin1234` | Administrador. Entra al back-office y a la API. |
+| `demo` | `demo1234` | Usuario común de demostración, con ingresos y gastos de ejemplo. Solo se crea fuera de producción. |
 
-El seed también crea las dos categorías de ejemplo del contrato de la API (Supermercado y Limpieza).
-
-> **Solo para desarrollo.** Estas credenciales están en el repositorio y no son de cuentas reales. No las uses en un entorno real: cambiá las contraseñas o eliminá los usuarios antes de publicar.
+> **Solo para desarrollo.** Estas credenciales están en el repositorio y no son de cuentas reales. Cambiá las contraseñas o eliminá los usuarios antes de publicar.
 
 ## Back-office (panel de administración)
 
-- **URL de acceso:** <http://localhost:3000/admin/login>
-- **Usuario de prueba** (lo crea `db/seeds.rb`, junto con el grupo familiar "Familia Gorosito"):
-
-  | Usuario | Contraseña |
-  |---------|------------|
-  | `admin` | `admin1234` |
-
-> **Solo para desarrollo.** Esta credencial está en el repositorio. No la uses en un entorno real: cambiá la contraseña o eliminá el usuario antes de publicar.
-
-Solo pueden ingresar los usuarios con el flag `admin`. Una vez dentro, el back-office ofrece estas secciones (rutas bajo `/admin`): panel principal, gastos, ingresos, categorías, compras en cuotas, comercios (vendors), metas de ahorro, usuarios, lista de compras (con carga por lote), ahorro y estadísticas.
+- **URL:** <http://localhost:3000/admin/login>
+- **Acceso:** solo usuarios con el flag `admin` (por ejemplo `admin` / `admin1234`).
+- **Secciones** (rutas bajo `/admin`): panel principal, gastos, ingresos, categorías, compras en cuotas, comercios, metas de ahorro, usuarios, lista de compras, ahorro y estadísticas.
 
 ## API v1
 
-La API devuelve y recibe JSON y todas sus rutas cuelgan de `/api/v1`. **El contrato completo está en [`api.md`](api.md)**: rutas, campos, validaciones, permisos, errores y ejemplos reproducibles. Esa es la única fuente de la documentación de la API; este README no la repite para que no queden dos versiones distintas.
+La API usa JSON y todas sus rutas cuelgan de `/api/v1`. **El contrato completo está en [`docs/api/api.md`](../docs/api/api.md)**; ahí están las rutas, campos, validaciones, permisos y errores. Este README no lo repite para que no queden dos versiones.
 
-Lo básico para empezar:
+Lo básico:
 
-1. `POST /api/v1/login` con `user` y `password` devuelve un `token` (JWT) y cuándo vence (`expires_at`).
-2. En cada pedido protegido se envía `Authorization: Bearer <TOKEN>`. El token vence a las 24 horas, y `DELETE /api/v1/logout` lo invalida antes.
-3. Un usuario común ve solo sus datos. El administrador ve los de todos.
-4. Los errores (`400`, `401`, `403`, `404` y `422`) tienen todos la misma forma: `{ "errors": [ { "field": "...", "message": "..." } ] }`. Los textos están en `config/locales/es.yml`.
-5. En `api.md` cada endpoint indica su estado (`existe`, `cambia` o `falta`).
+1. `POST /api/v1/login` con `user` y `password` devuelve un `token` (JWT) y cuándo vence. En cada pedido protegido se envía `Authorization: Bearer <TOKEN>`. El token dura 24 horas y `DELETE /api/v1/logout` lo invalida antes.
+2. Cada usuario ve solo sus propios gastos e ingresos. El administrador ve los de todos.
+3. Los errores tienen siempre la misma forma: `{ "errors": [ { "field": "...", "message": "..." } ] }`.
+
+Endpoints destacados de las últimas funciones:
+
+- `GET /api/v1/statistics/monthly_comparison`: compara dos meses por categoría y producto, separando el efecto del precio y el de la cantidad.
+- `GET /api/v1/shopping_list_items?status=pending|purchased` y `POST /api/v1/shopping_list_items/copy`: lista de compras con ítems comprados y copia de los pendientes a otro mes.
+- `GET /api/v1/installment_purchases/monthly_total`: total de un mes (cuotas con interés más el mantenimiento mensual de la tarjeta, que se suma una sola vez).
+- `GET` y `PATCH /api/v1/installment_settings`: mantenimiento mensual de la tarjeta (valor del grupo, editable).
 
 ### Documentación interactiva (Swagger UI)
 
-La API también está documentada en formato OpenAPI y se puede explorar y probar desde el navegador. Con el servidor levantado (`bin/rails server`), abrí [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
-
-Para probar un endpoint protegido:
-
-1. Abrí `POST /login`, tocá **Try it out**, completá `user` y `password` (por ejemplo `demo` / `demo1234`) y ejecutalo. Copiá el valor de `token` de la respuesta.
-2. Tocá el botón **Authorize** (arriba a la derecha), pegá el token (sin escribir `Bearer`) y confirmá.
-3. Ya podés ejecutar cualquier endpoint protegido, por ejemplo `GET /dashboard`.
-
-La especificación está en [`swagger/v1/openapi.yaml`](swagger/v1/openapi.yaml). Se escribe a mano y es un resumen navegable de `api.md`, que sigue siendo la fuente del contrato: si cambia una ruta o un campo, se actualizan los dos. El test `test/docs/openapi_spec_test.rb` avisa si una ruta de la API no está documentada o si la documentación nombra una ruta que no existe.
-
-Con la base cargada con `db:seed`, se puede probar entrando con `demo` / `demo1234` (ver [Datos de prueba](#datos-de-prueba-y-credenciales-de-demostración)).
+Con el servidor levantado, abrí <http://localhost:3000/api-docs>. Para probar un endpoint protegido: ejecutá `POST /login`, copiá el `token`, tocá **Authorize** y pegalo (sin escribir `Bearer`). La especificación está en [`swagger/v1/openapi.yaml`](swagger/v1/openapi.yaml) y el test `test/docs/openapi_spec_test.rb` avisa si una ruta de la API no está documentada.
 
 ## Modelo de datos
 
-Un **grupo familiar** (`FamilyGroup`) es la unidad principal: agrupa usuarios, gastos, metas de ahorro y compras en cuotas.
+Un **grupo familiar** (`FamilyGroup`) agrupa usuarios, metas de ahorro, compras en cuotas y la lista de compras. Los gastos e ingresos pertenecen a cada usuario.
 
 ```
 FamilyGroup ──< User ──< Income
      │            └────< Expense >── Category (con padre/subcategorías)
      │                    │  └────── Vendor (opcional)
      │                    └──< ExpenseItem
-     ├──< Expense            (el gasto también pertenece al grupo)
      ├──< SavingsGoal
      ├──< InstallmentPurchase >── Category, Vendor (opcional)
      └──< ShoppingListItem >── Category
 
-FinancialTip, ReferenceIndex: tablas independientes, sin relaciones.
+FinancialTip, ReferenceIndex: tablas independientes.
 ```
 
 | Modelo | Qué representa |
 |--------|----------------|
-| `FamilyGroup` | Grupo familiar, con su porcentaje de ahorro objetivo (0 a 100) |
-| `User` | Usuario del grupo. Tiene contraseña con `has_secure_password`, un `token_version` que invalida los tokens de la API al cerrar sesión y el flag `admin` para el back-office |
-| `Income` | Ingreso de un usuario (monto mayor a 0 y fecha) |
-| `Expense` | Gasto con categoría, comercio opcional, canal de compra (`presencial`, `delivery`, `retiro`), indicador de gasto fijo y una imagen de comprobante adjuntable (Active Storage) |
-| `ExpenseItem` | Ítem de un gasto: nombre, cantidad, unidad (`unidad`, `kg`, `g`) y precio unitario |
-| `Category` | Categoría de gasto, con categoría padre opcional |
-| `Vendor` | Comercio donde se compra, con un indicador de compra online |
-| `SavingsGoal` | Meta de ahorro: monto objetivo, monto ahorrado y fecha límite. Calcula el progreso y cuánto ahorrar por mes |
-| `InstallmentPurchase` | Compra en cuotas (de 1 a 48): calcula el monto por cuota, los períodos y las cuotas restantes |
-| `ShoppingListItem` | Ítem de la lista de compras de un período, con precio unitario estimado |
-| `FinancialTip` | Consejo financiero, con un indicador para mostrarlo junto a las alertas |
+| `FamilyGroup` | Grupo familiar, con su porcentaje de ahorro objetivo y el mantenimiento mensual de la tarjeta (`card_monthly_fee`) |
+| `User` | Usuario del grupo, con contraseña, `token_version` para invalidar tokens y flag `admin` |
+| `Income` | Ingreso de un usuario |
+| `Expense` | Gasto con categoría, comercio opcional, canal de compra, indicador de gasto fijo y comprobante adjunto |
+| `ExpenseItem` | Producto de un gasto: nombre, cantidad, unidad y precio unitario |
+| `Category` | Categoría de gasto, con padre opcional |
+| `Vendor` | Comercio donde se compra |
+| `SavingsGoal` | Meta de ahorro: monto objetivo, ahorrado y fecha límite |
+| `InstallmentPurchase` | Compra en cuotas (1 a 48) con interés total en %: calcula el total con interés, la cuota, los períodos y las cuotas restantes |
+| `ShoppingListItem` | Ítem de la lista de compras de un mes, con precio estimado y estado comprado |
+| `FinancialTip` | Consejo financiero |
 | `ReferenceIndex` | Índice de referencia (nombre, período y valor) |
 
 ## Calidad y tests
-
-Comandos, desde la raíz del proyecto:
 
 ```bash
 bin/rails test      # pruebas automatizadas
@@ -153,20 +132,13 @@ bin/rubocop         # estilo del código
 bin/brakeman        # análisis de seguridad
 ```
 
-Estado verificado al 2026-11-02: **186 tests, 596 assertions, 0 fallas, 0 errores, 0 omitidos.** Cubren los endpoints de la API v1, los modelos, parte del back-office y los mailers.
-
-- **Rubocop:** 113 archivos inspeccionados, **0 ofensas**.
-- **Brakeman:** **0 advertencias activas**. Hay 2 advertencias ignoradas a propósito, ambas falsos positivos de mass assignment en `Admin::UsersController`, justificados y documentados en `config/brakeman.ignore`. Esa pantalla solo es accesible para administradores logueados y existe justamente para que un admin cree usuarios y los marque como administradores.
-
-**Lo que hoy no está cubierto por tests:** las pantallas del back-office de gastos, ingresos, usuarios, comercios, compras en cuotas, lista de compras, ahorro y estadísticas, y no hay tests de sistema (navegador).
-
-Los comandos de pruebas y de compilación del front-end están en el README de su repositorio.
+Las pruebas cubren los endpoints de la API v1, los modelos, parte del back-office y los mailers. No hay tests de sistema (navegador).
 
 ## Evolución futura
 
-Estas funcionalidades **quedaron fuera del alcance de esta entrega** y son una **idea planeada a futuro**. Hoy no están implementadas.
+Ideas planeadas que **no están implementadas**:
 
-- **Lectura automática de tickets y facturas (OCR):** sacar una foto del comprobante y que la app cargue sola el comercio, la fecha y los ítems del gasto. El modelo de gastos ya admite adjuntar una imagen de comprobante y guardar ítems con precio unitario, que serían la base para esto.
-- **Comparación de precios entre comercios:** con los precios por ítem y el comercio de cada compra, comparar cuánto cuesta el mismo producto en distintos lugares y ayudar a elegir dónde comprar.
-- **Presupuesto por categoría:** definir un monto objetivo mensual por categoría de gasto (por ejemplo, Alimentos) y mostrar el consumo acumulado contra ese objetivo, con una alerta visual cuando se acerca o supera el límite.
-- **Carga de gastos por chat (WhatsApp o un asistente con IA):** registrar un gasto escribiendo un mensaje en lenguaje natural ("gasté 5000 en el supermercado"), en vez de completar el formulario manualmente.
+- **Lectura automática de tickets (OCR):** sacar una foto del comprobante y cargar solo el comercio, la fecha y los ítems.
+- **Comparación de precios entre comercios:** con el precio por ítem y el comercio de cada compra, comparar el mismo producto en distintos lugares.
+- **Carga de gastos por chat:** registrar un gasto escribiendo un mensaje en lenguaje natural.
+- **Tarjetas de crédito:** intereses cuando se financia el resumen.
