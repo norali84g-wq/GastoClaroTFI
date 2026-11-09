@@ -24,7 +24,10 @@ module Gastoclaro
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # Argentina usa una sola hora (UTC-3, sin horario de verano). En Rails ese huso se llama
+    # "Buenos Aires". Define qué día y mes es "hoy" (Date.current) para presupuestos, cuotas y
+    # estadísticas. En la base las horas se guardan igual en UTC.
+    config.time_zone = "Buenos Aires"
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end

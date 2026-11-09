@@ -34,6 +34,12 @@ class Api::V1::RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta AuthToken::EXPIRATION.from_now.to_f, vence.to_f, 60
   end
 
+  test "el vencimiento del token sale siempre en UTC, aunque la app use hora argentina" do
+    post "/api/v1/register", params: valid_params, as: :json
+
+    assert_match(/Z\z/, response.parsed_body["expires_at"])
+  end
+
   test "el token devuelto sirve para usar la API" do
     post "/api/v1/register", params: valid_params, as: :json
     token = response.parsed_body["token"]

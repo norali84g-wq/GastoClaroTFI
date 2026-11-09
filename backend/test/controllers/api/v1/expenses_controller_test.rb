@@ -18,10 +18,10 @@ class Api::V1::ExpensesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index devuelve solo los gastos de la familia del usuario, con sus items" do
-    propio = Expense.new(user: @user, category: @categoria, date: Date.today, description: "propio")
+    propio = Expense.new(user: @user, category: @categoria, date: Date.current, description: "propio")
     propio.expense_items.build(name: "Leche", quantity: 2, unit_price: 100)
     propio.save!
-    Expense.create!(user: @otro_user, category: @categoria, date: Date.today, amount: 777, description: "ajeno")
+    Expense.create!(user: @otro_user, category: @categoria, date: Date.current, amount: 777, description: "ajeno")
 
     get "/api/v1/expenses", headers: @headers
 
@@ -32,7 +32,7 @@ class Api::V1::ExpensesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index devuelve el usuario como objeto con id y nombre" do
-    Expense.create!(user: @user, category: @categoria, date: Date.today, amount: 10)
+    Expense.create!(user: @user, category: @categoria, date: Date.current, amount: 10)
 
     get "/api/v1/expenses", headers: @headers
 
