@@ -37,6 +37,15 @@ class Api::V1::BudgetAlertsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Comida", "Servicios" ].sort, alertas.map { |a| a["budget"]["category"]["name"] }.uniq.sort
   end
 
+  test "el admin ve las alertas de todos los usuarios" do
+    admin = User.create!(user: "jefa", password: "password123", family_group: @familia, admin: true)
+
+    get "/api/v1/budget_alerts", headers: headers_for(admin)
+
+    assert_response :ok
+    assert_equal 5, response.parsed_body.size
+  end
+
   test "index filtra por periodo" do
     get "/api/v1/budget_alerts", params: { period: "2026-11" }, headers: headers_for(@user)
 

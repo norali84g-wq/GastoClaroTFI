@@ -79,6 +79,28 @@ class BudgetTest < ActiveSupport::TestCase
     assert_equal BigDecimal("-500"), @budget.remaining
   end
 
+  test "cambiar la categoria o el mes borra las alertas" do
+    gasto(900, fecha: Date.new(2026, 11, 5), categoria: @comida)
+    assert_equal 1, @budget.budget_alerts.count
+
+    @budget.update!(category: @servicios)
+    assert_empty @budget.budget_alerts
+
+    gasto(900, fecha: Date.new(2026, 11, 5), categoria: @servicios)
+    assert_equal 1, @budget.budget_alerts.count
+
+    @budget.update!(period: "2026-12")
+    assert_empty @budget.budget_alerts
+  end
+
+  test "cambiar solo el monto no borra las alertas" do
+    gasto(900, fecha: Date.new(2026, 11, 5), categoria: @comida)
+
+    @budget.update!(amount: 5000)
+
+    assert_equal 1, @budget.budget_alerts.count
+  end
+
   test "al borrar el presupuesto se borran sus alertas" do
     gasto(900, fecha: Date.new(2026, 11, 5), categoria: @comida)
     assert_equal 1, @budget.budget_alerts.count

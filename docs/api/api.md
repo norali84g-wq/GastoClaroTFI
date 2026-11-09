@@ -1047,7 +1047,7 @@ curl -X POST http://localhost:3000/api/v1/budgets \
 
 ### `PATCH /budgets/:id`
 
-Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales.
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Si cambia `category_id` o `period`, se borran las alertas del presupuesto y se vuelven a calcular con lo gastado en la categoría y el mes nuevos. Si cambia solo `amount`, las alertas ya generadas se mantienen.
 
 ```bash
 curl -X PATCH http://localhost:3000/api/v1/budgets/<BUDGET_ID> \

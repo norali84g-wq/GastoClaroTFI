@@ -155,6 +155,65 @@ class Api::V1::BudgetsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "amount", response.parsed_body["errors"].first["field"]
   end
 
+  test "update del monto mantiene las alertas ya generadas" do
+    Expense.create!(amount: 900, date: Date.new(2026, 11, 5), user: @user, category: @comida)
+
+    patch "/api/v1/budgets/#{@presupuesto.id}", params: { amount: 5000 }, headers: headers_for(@user)
+
+    assert_response :ok
+    assert_equal [ 80 ], response.parsed_body["alerts"].map { |a| a["threshold_percentage"] }
+  end
+
+  test "update de la categoria borra las alertas que eran de la categoria anterior" do
+    Expense.create!(amount: 900, date: Date.new(2026, 11, 5), user: @user, category: @comida)
+    Expense.create!(amount: 100, date: Date.new(2026, 11, 5), user: @user, category: @servicios)
+    assert_equal 1, @presupuesto.budget_alerts.count
+
+    patch "/api/v1/budgets/#{@presupuesto.id}", params: { category_id: @servicios.id }, headers: headers_for(@user)
+
+    assert_response :ok
+    assert_equal 10, response.parsed_body["percentage"]
+    assert_equal [], response.parsed_body["alerts"]
+  end
+
+  test "despues de cambiar la categoria el umbral vuelve a avisar" do
+    Expense.create!(amount: 900, date: Date.new(2026, 11, 5), user: @user, category: @comida)
+    patch "/api/v1/budgets/#{@presupuesto.id}", params: { category_id: @servicios.id }, headers: headers_for(@user)
+    assert_empty @presupuesto.budget_alerts.reload
+
+    Expense.create!(amount: 850, date: Date.new(2026, 11, 6), user: @user, category: @servicios)
+
+    assert_equal [ 80 ], @presupuesto.budget_alerts.reload.map(&:threshold_percentage)
+  end
+
+  test "update del mes recalcula las alertas para el mes nuevo" do
+    Expense.create!(amount: 900, date: Date.new(2026, 11, 5), user: @user, category: @comida)
+    Expense.create!(amount: 1000, date: Date.new(2027, 1, 5), user: @user, category: @comida)
+
+    patch "/api/v1/budgets/#{@presupuesto.id}", params: { period: "2027-01" }, headers: headers_for(@user)
+
+    assert_response :ok
+    assert_equal [ 80, 100 ], response.parsed_body["alerts"].map { |a| a["threshold_percentage"] }
+  end
+
+  test "update que falla por validacion no borra las alertas" do
+    Expense.create!(amount: 900, date: Date.new(2026, 11, 5), user: @user, category: @comida)
+
+    patch "/api/v1/budgets/#{@presupuesto.id}", params: { period: "2026-12", category_id: @servicios.id },
+                                                headers: headers_for(@user)
+
+    assert_response :unprocessable_entity
+    assert_equal [ 80 ], @presupuesto.budget_alerts.reload.map(&:threshold_percentage)
+  end
+
+  test "el admin puede editar el presupuesto de otro usuario" do
+    patch "/api/v1/budgets/#{@ajeno.id}", params: { amount: 900 }, headers: headers_for(@admin)
+
+    assert_response :ok
+    assert_equal BigDecimal("900"), @ajeno.reload.amount
+    assert_equal @otro_user.id, @ajeno.user_id
+  end
+
   test "update de un presupuesto de otro usuario da 404" do
     patch "/api/v1/budgets/#{@ajeno.id}", params: { amount: 1 }, headers: headers_for(@user)
 
@@ -165,6 +224,14 @@ class Api::V1::BudgetsControllerTest < ActionDispatch::IntegrationTest
   test "destroy borra el presupuesto" do
     assert_difference -> { Budget.count }, -1 do
       delete "/api/v1/budgets/#{@presupuesto.id}", headers: headers_for(@user)
+    end
+
+    assert_response :no_content
+  end
+
+  test "el admin puede borrar el presupuesto de otro usuario" do
+    assert_difference -> { Budget.count }, -1 do
+      delete "/api/v1/budgets/#{@ajeno.id}", headers: headers_for(@admin)
     end
 
     assert_response :no_content

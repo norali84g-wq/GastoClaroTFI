@@ -11,6 +11,10 @@ class Budget < ApplicationRecord
   validates :amount, numericality: { greater_than: 0 }
   validates :category_id, uniqueness: { scope: %i[user_id period], message: "ya tiene un presupuesto en ese mes" }
 
+  # Las alertas se refieren a lo gastado en una categoría y un mes. Si cambia alguno de los dos, las
+  # alertas viejas ya no valen: se borran para que los umbrales puedan volver a avisar.
+  after_update :clear_alerts, if: -> { saved_change_to_category_id? || saved_change_to_period? }
+
   # Lo gastado en el mes en la categoría y en sus subcategorías. No se guarda: se calcula cada vez.
   def spent
     return 0.to_d unless Period.valid?(period) && category
@@ -29,6 +33,11 @@ class Budget < ApplicationRecord
   end
 
   private
+
+  def clear_alerts
+    BudgetAlert.where(budget_id: id).delete_all
+    budget_alerts.reset
+  end
 
   def month_range
     start = Date.strptime(period, "%Y-%m")

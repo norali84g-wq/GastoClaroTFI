@@ -789,7 +789,7 @@ paths:
     patch:
       tags: [Presupuestos]
       summary: Editar un presupuesto
-      description: Acepta los mismos campos que al crear, todos opcionales.
+      description: Acepta los mismos campos que al crear, todos opcionales. Si cambia `category_id` o `period`, se borran las alertas del presupuesto y se vuelven a calcular para la categoría y el mes nuevos. Si cambia solo `amount`, las alertas ya generadas se mantienen.
       operationId: updateBudget
       requestBody:
         required: true
