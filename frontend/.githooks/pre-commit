@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+cd "$root/frontend"
+git -C "$root" diff --cached --name-only --diff-filter=ACMR -z -- frontend/ |
+  node scripts/check-staged.js
