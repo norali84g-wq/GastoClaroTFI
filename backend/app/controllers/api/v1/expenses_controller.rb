@@ -28,7 +28,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
     # Se valida todo junto para devolver todos los errores en una sola respuesta.
     expense.validate
     expense.errors.add(:vendor_id, :not_found) unless vendor_valido?
-    expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?
+    expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(expense)
     expense.errors.add(:purchase_channel, :invalid) if purchase_channel_invalido?
 
     if expense.errors.empty? && expense.save
@@ -44,7 +44,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
     # Misma validación conjunta que en create: se devuelven todos los errores juntos.
     @expense.validate
     @expense.errors.add(:vendor_id, :not_found) unless vendor_valido?
-    @expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?
+    @expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(@expense)
     @expense.errors.add(:purchase_channel, :invalid) if purchase_channel_invalido?
 
     if @expense.errors.empty? && @expense.save

@@ -985,7 +985,7 @@ paths:
     get:
       tags: [Compras en cuotas]
       summary: Listar las cuotas de una compra
-      description: Una cuota por mes, ordenadas por número, con su monto y si ya se pagó.
+      description: Una cuota por mes, ordenadas por número, con su monto y si ya se pagó. Todas valen `installment_amount` salvo la última, que absorbe la diferencia del redondeo para que la suma dé exactamente `total_with_interest`.
       operationId: listInstallments
       responses:
         "200":
@@ -1015,6 +1015,7 @@ paths:
     patch:
       tags: [Compras en cuotas]
       summary: Marcar una cuota como pagada o no pagada
+      description: Es solo un registro para el usuario. No cambia `remaining_installments` ni `/installment_purchases/monthly_total`, que se calculan por fecha.
       operationId: updateInstallment
       requestBody:
         required: true
@@ -1046,9 +1047,14 @@ paths:
       tags: [Compras en cuotas]
       summary: Total de un mes
       description: |
-        Las cuotas que vencen ese mes más el mantenimiento mensual de la
-        tarjeta. El mantenimiento se suma **una sola vez** y solo si ese mes
-        vence al menos una cuota. Cuenta las compras del grupo familiar.
+        Las cuotas que vencen ese mes más el mantenimiento mensual. Cada medio
+        de pago con cuotas ese mes suma su `monthly_fee` **una sola vez**; si hay
+        compras sin medio de pago, se suma además el mantenimiento del grupo
+        (`/installment_settings`), también una sola vez. Si ese mes no vence
+        ninguna cuota, no se suma mantenimiento. Cuenta las compras del grupo
+        familiar, por fecha: no tiene en cuenta si las cuotas están marcadas como
+        pagadas. En el último mes de una compra, `installment_amount` es el de la
+        última cuota, que puede diferir en centavos.
       operationId: getInstallmentMonthlyTotal
       parameters:
         - name: period
@@ -1931,7 +1937,7 @@ components:
     # --- Gastos ---
     Expense:
       type: object
-      required: [id, amount, date, description, is_fixed, purchase_channel, user, vendor_id, category, expense_items]
+      required: [id, amount, date, description, is_fixed, purchase_channel, user, vendor_id, payment_method_id, category, expense_items]
       properties:
         id:
           type: integer
@@ -1960,7 +1966,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           nullable: true
@@ -2026,7 +2032,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           description: Opcional. El front no lo envía; si se envía, tiene que existir.
@@ -2061,7 +2067,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           example: 1
@@ -2438,7 +2444,7 @@ components:
     # --- Compras en cuotas ---
     InstallmentPurchase:
       type: object
-      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, total_with_interest, installment_amount, remaining_installments]
+      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, payment_method_id, total_with_interest, installment_amount, remaining_installments]
       properties:
         id:
           type: integer
@@ -2462,7 +2468,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           nullable: true
@@ -2479,12 +2485,12 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           readOnly: true
-          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`).
+          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`). La última cuota puede diferir en centavos para que la suma dé exacto.
         remaining_installments:
           type: integer
           readOnly: true
           minimum: 0
-          description: Calculado. Cuotas que todavía no vencieron. No cuenta la del mes en curso, que ya se considera paga (una compra de 1 cuota que empieza este mes tiene `0`; una de 12 tiene `11`). Nunca menos de `0`.
+          description: Calculado. Cuotas que todavía no vencieron. No cuenta la del mes en curso, que ya se considera paga (una compra de 1 cuota que empieza este mes tiene `0`; una de 12 tiene `11`). Nunca menos de `0`. Se cuenta por fecha, así que no depende de las cuotas marcadas como pagadas.
     InstallmentPurchaseInput:
       type: object
       required: [description, total_amount, installments_count, first_period, category_id]
@@ -2516,7 +2522,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           description: Si se envía, tiene que existir.
@@ -2550,7 +2556,7 @@ components:
         payment_method_id:
           type: integer
           nullable: true
-          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario.
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           example: 1

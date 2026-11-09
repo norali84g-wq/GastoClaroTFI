@@ -180,6 +180,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `purchase_channel` | string | No | `presencial`, `delivery` o `retiro` |
 | `user` | objeto `{ id, user }` | No | a quién pertenece |
 | `vendor_id` | integer | **Sí** | el front lo ignora. Puede traer valor si el gasto se cargó desde el panel admin |
+| `payment_method_id` | integer | **Sí** | medio de pago, si se informó (ver [Medios de pago](#medios-de-pago)) |
 | `category` | objeto `{ id, name }` | No | categoría |
 | `expense_items` | array de Ítem | No | puede venir vacío (`[]`) |
 
@@ -238,10 +239,11 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `first_period` | string `YYYY-MM` | No | mes de la primera cuota |
 | `category_id` | integer | No | categoría |
 | `vendor_id` | integer | **Sí** | comercio, si se informó |
+| `payment_method_id` | integer | **Sí** | medio de pago, si se informó (ver [Medios de pago](#medios-de-pago)) |
 | `interest_rate` | string decimal | No | interés total de la compra, en % (de 0 a 100; `0` = sin interés) |
 | `total_with_interest` | string decimal | No | **calculado**: `total_amount` con el interés sumado, redondeado a 2 decimales |
-| `installment_amount` | string decimal | No | **calculado**: `total_with_interest / installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta |
-| `remaining_installments` | integer | No | **calculado**: cuotas que faltan hasta el mes actual (nunca menos de `0`) |
+| `installment_amount` | string decimal | No | **calculado**: `total_with_interest / installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta. La última cuota puede diferir en centavos para que la suma dé exacto (ver `GET /installment_purchases/:id/installments`) |
+| `remaining_installments` | integer | No | **calculado**: cuotas que faltan hasta el mes actual (nunca menos de `0`). Se cuenta por fecha: no depende de las cuotas marcadas como pagadas |
 
 ---
 
@@ -704,6 +706,7 @@ curl "http://localhost:3000/api/v1/expenses?period=2026-09" -H "Authorization: B
     "purchase_channel": "presencial",
     "user": { "id": 1, "user": "admin" },
     "vendor_id": null,
+    "payment_method_id": null,
     "category": { "id": 1, "name": "Supermercado" },
     "expense_items": [
       { "id": 1, "name": "Leche", "quantity": 2, "unit": "unidad", "unit_price": "1800.5", "subtotal": "3601.0" },
@@ -724,6 +727,7 @@ Protegido. El gasto queda a nombre del usuario del token.
 | `amount` | number | Sí, si no hay ítems | mayor a 0 |
 | `description` | string | No | — |
 | `vendor_id` | integer | No | no se usa: el front no lo envía |
+| `payment_method_id` | integer | No | si se envía, tiene que ser un medio de pago del usuario (ver [Medios de pago](#medios-de-pago)) |
 | `is_fixed` | boolean | No | por defecto `false` |
 | `purchase_channel` | string | No | `presencial`, `delivery` o `retiro` (por defecto `presencial`) |
 | `expense_items_attributes` | array de ítems | No | ver la tabla de abajo |
@@ -759,6 +763,7 @@ curl -X POST http://localhost:3000/api/v1/expenses \
   "purchase_channel": "presencial",
   "user": { "id": 1, "user": "admin" },
   "vendor_id": null,
+  "payment_method_id": null,
   "category": { "id": 2, "name": "Limpieza" },
   "expense_items": []
 }
@@ -784,6 +789,7 @@ curl -X POST http://localhost:3000/api/v1/expenses \
   "purchase_channel": "presencial",
   "user": { "id": 1, "user": "admin" },
   "vendor_id": null,
+  "payment_method_id": null,
   "category": { "id": 1, "name": "Supermercado" },
   "expense_items": [
     { "id": 1, "name": "Leche", "quantity": 2, "unit": "unidad", "unit_price": "1800.5", "subtotal": "3601.0" },
@@ -1099,7 +1105,7 @@ curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorizati
 
 ## Medios de pago
 
-Un medio de pago es el nombre de una tarjeta (u otro medio) de **un usuario**, con su mantenimiento mensual. **No se guardan datos de la tarjeta** (número, vencimiento ni código). Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`. Los gastos (`POST` y `PATCH /expenses`) y las compras en cuotas (`POST` y `PATCH /installment_purchases`) aceptan un `payment_method_id` opcional: tiene que ser un medio de pago del usuario, si no responde `422` con `field` `payment_method_id`.
+Un medio de pago es el nombre de una tarjeta (u otro medio) de **un usuario**, con su mantenimiento mensual. **No se guardan datos de la tarjeta** (número, vencimiento ni código). Cada usuario ve solo los suyos; el admin ve los de todos. Uno de otro usuario responde `404`. Los gastos (`POST` y `PATCH /expenses`) y las compras en cuotas (`POST` y `PATCH /installment_purchases`) aceptan un `payment_method_id` opcional: tiene que ser un medio de pago del usuario, si no responde `422` con `field` `payment_method_id`. La excepción es reenviar el mismo `payment_method_id` que ya tiene el registro: se acepta aunque sea de otro usuario, para que otro integrante del grupo pueda editar una compra en cuotas sin cambiarle la tarjeta.
 
 El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por cada medio de pago que tenga cuotas ese mes, en `GET /installment_purchases/monthly_total`. Las compras sin medio de pago usan el mantenimiento del grupo (`GET /installment_settings`), también una sola vez.
 
@@ -1193,7 +1199,7 @@ curl http://localhost:3000/api/v1/installment_purchases -H "Authorization: Beare
 [
   {
     "id": 1, "description": "Heladera", "total_amount": "1200.0", "installments_count": 12,
-    "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+    "first_period": "2026-11", "category_id": 4, "vendor_id": null, "payment_method_id": null,
     "interest_rate": "0.0", "total_with_interest": "1200.0",
     "installment_amount": "100.0", "remaining_installments": 11
   }
@@ -1212,6 +1218,7 @@ Protegido.
 | `first_period` | string `YYYY-MM` | Sí | mes válido, por ejemplo `2026-11` |
 | `category_id` | integer | Sí | tiene que existir |
 | `vendor_id` | integer | No | si se envía, tiene que existir |
+| `payment_method_id` | integer | No | si se envía, tiene que ser un medio de pago del usuario (ver [Medios de pago](#medios-de-pago)) |
 | `interest_rate` | number | No | de 0 a 100 (% total de la compra). Por defecto `0` |
 
 ```bash
@@ -1225,7 +1232,7 @@ curl -X POST http://localhost:3000/api/v1/installment_purchases \
 ```json
 {
   "id": 2, "description": "Televisor", "total_amount": "900.0", "installments_count": 3,
-  "first_period": "2026-11", "category_id": 4, "vendor_id": null,
+  "first_period": "2026-11", "category_id": 4, "vendor_id": null, "payment_method_id": null,
   "interest_rate": "0.0", "total_with_interest": "900.0",
   "installment_amount": "300.0", "remaining_installments": 2
 }
@@ -1265,7 +1272,7 @@ curl -X DELETE http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID> 
 
 ### `GET /installment_purchases/monthly_total`
 
-Protegido. Devuelve lo que hay que pagar en un mes: las cuotas que vencen ese mes más el **mantenimiento mensual de la tarjeta**. El mantenimiento se suma **una sola vez** y solo si ese mes vence al menos una cuota. Cuenta las compras del grupo familiar. Con `?period=AAAA-MM` elige el mes; si falta, usa el mes en curso.
+Protegido. Devuelve lo que hay que pagar en un mes: las cuotas que vencen ese mes más el **mantenimiento mensual**. Cada medio de pago con cuotas ese mes suma su `monthly_fee` **una sola vez**; si hay compras sin medio de pago, se suma además el mantenimiento del grupo (`/installment_settings`), también una sola vez. Si ese mes no vence ninguna cuota, no se suma mantenimiento. Cuenta las compras del grupo familiar, por fecha: no tiene en cuenta si las cuotas están marcadas como pagadas. En el último mes de una compra, `installment_amount` es el de la última cuota, que puede diferir en centavos. Con `?period=AAAA-MM` elige el mes; si falta, usa el mes en curso.
 
 ```bash
 curl "http://localhost:3000/api/v1/installment_purchases/monthly_total?period=2026-11" -H "Authorization: Bearer <TOKEN>"
@@ -1316,7 +1323,7 @@ curl -X PATCH http://localhost:3000/api/v1/installment_settings \
 
 ### `GET /installment_purchases/:id/installments`
 
-Protegido. Lista las cuotas de una compra, una por mes y en orden. Se generan solas al crear la compra y se vuelven a generar si se cambia el total, la cantidad de cuotas, el interés o el primer mes (las que ya estaban pagadas se conservan).
+Protegido. Lista las cuotas de una compra, una por mes y en orden. Se generan solas al crear la compra y se vuelven a generar si se cambia el total, la cantidad de cuotas, el interés o el primer mes (las que ya estaban pagadas se conservan). Todas valen `installment_amount` salvo la última, que absorbe la diferencia del redondeo para que la suma dé exactamente `total_with_interest` (por ejemplo, 1000 en 3 cuotas: `333.33`, `333.33` y `333.34`).
 
 ```bash
 curl http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID>/installments -H "Authorization: Bearer <TOKEN>"
@@ -1335,7 +1342,7 @@ curl http://localhost:3000/api/v1/installment_purchases/<PURCHASE_ID>/installmen
 
 ### `PATCH /installment_purchases/:id/installments/:installment_id`
 
-Protegido. Marca una cuota como pagada o no pagada.
+Protegido. Marca una cuota como pagada o no pagada. Es solo un registro para el usuario: no cambia `remaining_installments` ni `GET /installment_purchases/monthly_total`, que se calculan por fecha.
 
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|

@@ -26,6 +26,21 @@ class InstallmentPurchase < ApplicationRecord
     (total_con_interes / installments_count).round(2)
   end
 
+  # Monto de la cuota número `numero` (de 1 a installments_count). Todas valen monto_por_cuota salvo
+  # la última, que absorbe la diferencia del redondeo para que las cuotas sumen exactamente
+  # total_con_interes (por ejemplo, 1000 en 3 cuotas: 333.33, 333.33 y 333.34).
+  def monto_cuota(numero)
+    return monto_por_cuota unless numero == installments_count
+
+    total_con_interes - (monto_por_cuota * (installments_count - 1))
+  end
+
+  # Monto de la cuota que vence en `period`, o nil si ese mes no vence ninguna.
+  def monto_cuota_en(period)
+    index = periodos.index(period)
+    index && monto_cuota(index + 1)
+  end
+
   # Lista de todos los períodos ("2026-09", "2026-10", ...) que cubre esta compra
   def periodos
     inicio = Date.strptime(first_period, "%Y-%m")
@@ -50,7 +65,7 @@ class InstallmentPurchase < ApplicationRecord
 
     periodos.each_with_index do |period, index|
       installments.create!(
-        number: index + 1, period: period, amount: monto_por_cuota, paid: paid_numbers.include?(index + 1)
+        number: index + 1, period: period, amount: monto_cuota(index + 1), paid: paid_numbers.include?(index + 1)
       )
     end
   end

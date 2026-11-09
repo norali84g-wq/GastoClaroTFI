@@ -64,7 +64,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
   def valid_with_vendor?(purchase)
     purchase.validate
     purchase.errors.add(:vendor_id, :not_found) unless vendor_valido?
-    purchase.errors.add(:payment_method_id, :not_found) unless payment_method_valido?
+    purchase.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(purchase)
     purchase.errors.empty?
   end
 

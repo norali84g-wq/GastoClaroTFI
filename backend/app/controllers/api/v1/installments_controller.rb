@@ -2,11 +2,10 @@
 class Api::V1::InstallmentsController < Api::V1::BaseController
   before_action :set_installment_purchase
 
+  # Las cuotas de las compras cargadas antes de esta función las genera la migración
+  # GenerateInstallmentsForExistingPurchases.
   def index
-    # Las compras anteriores a esta función no tienen cuotas guardadas: se generan la primera vez.
-    @installment_purchase.generate_installments if @installment_purchase.installments.none?
-
-    render json: @installment_purchase.installments.reload.map { |installment| installment_json(installment) }
+    render json: @installment_purchase.installments.map { |installment| installment_json(installment) }
   end
 
   def update

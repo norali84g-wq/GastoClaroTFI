@@ -12,7 +12,7 @@ class InstallmentMonthlyTotal
 
   def as_json(*)
     due = @purchases.includes(:payment_method).order(:id).to_a.select { |purchase| purchase.periodos.include?(@period) }
-    installments_total = due.sum(0.to_d, &:monto_por_cuota)
+    installments_total = due.sum(0.to_d) { |purchase| purchase.monto_cuota_en(@period) }
     fee = monthly_fee(due)
 
     {
@@ -33,6 +33,6 @@ class InstallmentMonthlyTotal
   end
 
   def installment_json(purchase)
-    { id: purchase.id, description: purchase.description, installment_amount: purchase.monto_por_cuota }
+    { id: purchase.id, description: purchase.description, installment_amount: purchase.monto_cuota_en(@period) }
   end
 end

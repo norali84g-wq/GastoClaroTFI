@@ -53,12 +53,15 @@ class Api::V1::BaseController < ActionController::API
 
   # payment_method_id es opcional; si se envía tiene que ser un valor simple y un medio de pago
   # visible para el usuario. Se busca con `id:` para que nunca se interprete como SQL.
-  def payment_method_valido?
+  # Si el registro ya tenía ese mismo medio de pago, se acepta aunque sea de otro usuario: las compras
+  # en cuotas son del grupo familiar, y otro integrante tiene que poder editarlas sin cambiar la tarjeta.
+  def payment_method_valido?(record)
     payment_method_id = params[:payment_method_id]
     return true if payment_method_id.blank?
+    return false unless payment_method_id.is_a?(String) || payment_method_id.is_a?(Integer)
+    return true if record.persisted? && payment_method_id.to_s == record.payment_method_id_in_database.to_s
 
-    (payment_method_id.is_a?(String) || payment_method_id.is_a?(Integer)) &&
-      visible_payment_methods.exists?(id: payment_method_id)
+    visible_payment_methods.exists?(id: payment_method_id)
   end
 
   # Las metas de ahorro y las compras en cuotas pertenecen al grupo familiar del usuario.

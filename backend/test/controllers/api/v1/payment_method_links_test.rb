@@ -92,7 +92,48 @@ class Api::V1::PaymentMethodLinksTest < ActionDispatch::IntegrationTest
     assert_equal "payment_method_id", response.parsed_body["errors"].first["field"]
   end
 
+  test "otro integrante del grupo puede editar una compra sin cambiarle el medio de pago" do
+    compra = comprar("Heladera", 1200, 4, medio: @visa)
+
+    patch "/api/v1/installment_purchases/#{compra.id}",
+          params: { description: "Heladera no frost", payment_method_id: @visa.id }, headers: headers_for(@otro_user)
+
+    assert_response :ok
+    assert_equal "Heladera no frost", compra.reload.description
+    assert_equal @visa.id, compra.payment_method_id
+  end
+
+  test "otro integrante del grupo no puede pasar la compra a una tarjeta que no es suya" do
+    compra = comprar("Heladera", 1200, 4, medio: @visa)
+
+    patch "/api/v1/installment_purchases/#{compra.id}",
+          params: { payment_method_id: @master.id }, headers: headers_for(@otro_user)
+
+    assert_response :unprocessable_entity
+    assert_equal "payment_method_id", response.parsed_body["errors"].first["field"]
+    assert_equal @visa.id, compra.reload.payment_method_id
+  end
+
+  test "otro integrante del grupo puede pasar la compra a su propia tarjeta" do
+    compra = comprar("Heladera", 1200, 4, medio: @visa)
+
+    patch "/api/v1/installment_purchases/#{compra.id}",
+          params: { payment_method_id: @ajeno.id }, headers: headers_for(@otro_user)
+
+    assert_response :ok
+    assert_equal @ajeno.id, compra.reload.payment_method_id
+  end
+
   # --- total mensual ---
+
+  test "en el ultimo mes el total usa la ultima cuota, con la diferencia del redondeo" do
+    comprar("Microondas", 1000, 3, medio: @visa)   # 333.33, 333.33 y 333.34
+
+    assert_equal BigDecimal("333.33"), BigDecimal(total_de("2026-11")["installments_total"])
+    ultimo = total_de("2027-01")
+    assert_equal BigDecimal("333.34"), BigDecimal(ultimo["installments_total"])
+    assert_equal BigDecimal("333.34"), BigDecimal(ultimo["installments"].first["installment_amount"])
+  end
 
   test "cada medio de pago suma su mantenimiento una sola vez aunque tenga varias compras" do
     comprar("Heladera", 1200, 4, medio: @visa)   # 300 por mes
