@@ -57,8 +57,8 @@ class Api::V1::BudgetsController < Api::V1::BaseController
       period: budget.period,
       amount: budget.amount,
       spent: spent,
-      remaining: budget.amount - spent,
-      percentage: ((spent / budget.amount) * 100).round,
+      remaining: budget.remaining(spent),
+      percentage: budget.percentage(spent),
       user: { id: budget.user_id, user: budget.user.user },
       category: { id: budget.category_id, name: budget.category.name },
       alerts: budget.budget_alerts.sort_by(&:threshold_percentage).map { |alert| alert_json(alert) }

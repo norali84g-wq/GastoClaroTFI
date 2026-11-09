@@ -23,12 +23,13 @@ class Budget < ApplicationRecord
     user.expenses.where(category_id: category_ids, date: month_range).sum(:amount)
   end
 
-  def remaining
+  # `remaining` y `percentage` aceptan lo gastado ya calculado, para no consultarlo dos veces.
+  def remaining(spent = self.spent)
     amount - spent
   end
 
   # Porcentaje del presupuesto ya gastado. Puede superar 100.
-  def percentage
+  def percentage(spent = self.spent)
     ((spent / amount) * 100).round
   end
 
