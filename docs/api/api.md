@@ -984,6 +984,8 @@ Un presupuesto es el tope de gasto de **un usuario** para **una categoría** en 
 
 Lo gastado cuenta los gastos del usuario en ese mes, en la categoría y en sus subcategorías. Cuando lo gastado llega al **80 %** y al **100 %** del presupuesto se genera una alerta, una sola vez por porcentaje. Si hay consejos financieros para alertas, la alerta lleva uno. Las alertas se generan al guardar un gasto, o al crear o editar un presupuesto que ya está superado.
 
+Una alerta ya generada no se borra aunque después el porcentaje baje: por ejemplo, si se sube el `amount` del presupuesto o si se borra o se achica un gasto. Las alertas solo se borran si cambia la categoría o el mes del presupuesto (ver [`PATCH /budgets/:id`](#patch-budgetsid)) o si se borra el presupuesto.
+
 ### Presupuesto
 
 | Campo | Tipo | Puede ser `null` | Qué es |
@@ -1069,7 +1071,7 @@ curl -X DELETE http://localhost:3000/api/v1/budgets/<BUDGET_ID> -H "Authorizatio
 
 ### `GET /budget_alerts`
 
-Protegido. Lista las alertas de los presupuestos del usuario, de la más reciente a la más antigua. `?period=YYYY-MM` trae solo las de los presupuestos de ese mes.
+Protegido. Lista las alertas de los presupuestos del usuario, de la más reciente a la más antigua. El admin ve las de todos. `?period=YYYY-MM` trae solo las de los presupuestos de ese mes.
 
 ```bash
 curl "http://localhost:3000/api/v1/budget_alerts?period=2026-11" -H "Authorization: Bearer <TOKEN>"
