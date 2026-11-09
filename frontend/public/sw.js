@@ -1,6 +1,6 @@
-const cacheName = 'gastoclaro-static-v2';
+const cacheName = 'gastoclaro-static-v3';
 const staticFiles = new Set([
-  '/welcome.svg',
+  '/gastoclaro-hero.webp',
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',

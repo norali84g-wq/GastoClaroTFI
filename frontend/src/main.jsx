@@ -9,6 +9,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { Brand, Icon } from './components/brand.jsx';
 import { DataState } from './components/common.jsx';
 import { useData } from './hooks/data.js';
 import { api, expireSession, logout, useSession } from './hooks/session.js';
@@ -42,9 +43,7 @@ function AppLayout() {
         {text.skip}
       </a>
       <aside>
-        <Link className="brand" to="/inicio" onClick={() => setOpen(false)}>
-          {text.brand}
-        </Link>
+        <Brand to="/inicio" onClick={() => setOpen(false)} />
         <button
           className="menu-toggle secondary"
           onClick={() => setOpen(!open)}
@@ -55,18 +54,23 @@ function AppLayout() {
         </button>
         <nav id="navigation" className={open ? 'open' : ''}>
           <Link to="/inicio" onClick={() => setOpen(false)}>
+            <Icon name="home" />
             {text.home}
           </Link>
           <Link to="/consumos" onClick={() => setOpen(false)}>
+            <Icon name="cart" />
             {text.expenses}
           </Link>
           <Link to="/presupuestos" onClick={() => setOpen(false)}>
+            <Icon name="budget" />
             {text.budgets}
           </Link>
           <Link to="/medios-de-pago" onClick={() => setOpen(false)}>
+            <Icon name="card" />
             {text.paymentMethods}
           </Link>
           <Link to="/cuotas" onClick={() => setOpen(false)}>
+            <Icon name="calendar" />
             {text.installments}
           </Link>
           <button type="button" className="secondary" disabled={signingOut} onClick={signOut}>

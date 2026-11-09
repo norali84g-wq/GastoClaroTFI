@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useCallback, useState } from 'react';
 import {
   CategoryField,
@@ -43,9 +44,14 @@ function useBudgets(period) {
 export function BudgetSummary({ period }) {
   const result = useBudgets(period);
   return (
-    <section>
+    <section className="panel dashboard-budgets">
       <h2>{text.budgets}</h2>
-      <DataState result={result}>{(items) => <BudgetList items={items} />}</DataState>
+      <DataState result={result}>
+        {(items) => (items.length ? <BudgetList items={items} /> : <p>{text.noMonthlyBudgets}</p>)}
+      </DataState>
+      <Link className="button secondary" to="/presupuestos">
+        {text.viewBudgets}
+      </Link>
     </section>
   );
 }
