@@ -41,6 +41,11 @@ class Api::V1::BaseController < ActionController::API
     current_user.admin? ? Income.all : current_user.incomes
   end
 
+  # Los presupuestos y sus alertas son de cada usuario. El admin ve los de todos.
+  def visible_budgets
+    current_user.admin? ? Budget.all : current_user.budgets
+  end
+
   # Las metas de ahorro y las compras en cuotas pertenecen al grupo familiar del usuario.
   # El admin ve las de todos.
   def visible_savings_goals

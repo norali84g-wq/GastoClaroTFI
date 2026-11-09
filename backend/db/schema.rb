@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_120100) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -37,6 +37,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_140000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "budget_alerts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "budget_id", null: false
+    t.bigint "financial_tip_id"
+    t.integer "threshold_percentage", null: false
+    t.datetime "triggered_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["budget_id", "threshold_percentage"], name: "index_budget_alerts_on_budget_id_and_threshold_percentage", unique: true
+    t.index ["budget_id"], name: "index_budget_alerts_on_budget_id"
+    t.index ["financial_tip_id"], name: "index_budget_alerts_on_financial_tip_id"
+  end
+
+  create_table "budgets", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "category_id", null: false
+    t.string "period", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_budgets_on_category_id"
+    t.index ["user_id", "category_id", "period"], name: "index_budgets_on_user_id_and_category_id_and_period", unique: true
+    t.index ["user_id"], name: "index_budgets_on_user_id"
   end
 
   create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -175,6 +199,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_140000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "budget_alerts", "budgets"
+  add_foreign_key "budget_alerts", "financial_tips"
+  add_foreign_key "budgets", "categories"
+  add_foreign_key "budgets", "users"
   add_foreign_key "categories", "categories", column: "parent_id"
   add_foreign_key "expense_items", "expenses"
   add_foreign_key "expenses", "categories"

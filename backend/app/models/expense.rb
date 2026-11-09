@@ -18,11 +18,17 @@ class Expense < ApplicationRecord
 
   before_validation :set_family_group_from_user
   before_validation :set_amount_from_items
+  after_commit :check_budget_alerts, on: %i[create update]
 
   private
 
   def set_family_group_from_user
     self.family_group_id ||= user&.family_group_id
+  end
+
+  # Si el gasto hace que un presupuesto llegue a un umbral, se genera la alerta.
+  def check_budget_alerts
+    BudgetAlertChecker.for_expense(self)
   end
 
   def set_amount_from_items
