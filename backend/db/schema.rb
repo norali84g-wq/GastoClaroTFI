@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_08_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_130300) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -95,8 +95,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120100) do
     t.string "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "payment_method_id"
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["family_group_id"], name: "index_expenses_on_family_group_id"
+    t.index ["payment_method_id"], name: "index_expenses_on_payment_method_id"
     t.index ["user_id"], name: "index_expenses_on_user_id"
     t.index ["vendor_id"], name: "index_expenses_on_vendor_id"
   end
@@ -137,9 +139,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120100) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.decimal "interest_rate", precision: 5, scale: 2, default: "0.0", null: false
+    t.bigint "payment_method_id"
     t.index ["category_id"], name: "index_installment_purchases_on_category_id"
     t.index ["family_group_id"], name: "index_installment_purchases_on_family_group_id"
+    t.index ["payment_method_id"], name: "index_installment_purchases_on_payment_method_id"
     t.index ["vendor_id"], name: "index_installment_purchases_on_vendor_id"
+  end
+
+  create_table "installments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "installment_purchase_id", null: false
+    t.integer "number", null: false
+    t.string "period", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.boolean "paid", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["installment_purchase_id", "number"], name: "index_installments_on_installment_purchase_id_and_number", unique: true
+    t.index ["installment_purchase_id"], name: "index_installments_on_installment_purchase_id"
+  end
+
+  create_table "payment_methods", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.decimal "monthly_fee", precision: 10, scale: 2, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_payment_methods_on_user_id"
   end
 
   create_table "reference_indices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -207,12 +232,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_120100) do
   add_foreign_key "expense_items", "expenses"
   add_foreign_key "expenses", "categories"
   add_foreign_key "expenses", "family_groups"
+  add_foreign_key "expenses", "payment_methods"
   add_foreign_key "expenses", "users"
   add_foreign_key "expenses", "vendors"
   add_foreign_key "incomes", "users"
   add_foreign_key "installment_purchases", "categories"
   add_foreign_key "installment_purchases", "family_groups"
+  add_foreign_key "installment_purchases", "payment_methods"
   add_foreign_key "installment_purchases", "vendors"
+  add_foreign_key "installments", "installment_purchases"
+  add_foreign_key "payment_methods", "users"
   add_foreign_key "savings_goals", "family_groups"
   add_foreign_key "shopping_list_items", "categories"
   add_foreign_key "shopping_list_items", "family_groups"

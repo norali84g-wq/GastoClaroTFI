@@ -56,14 +56,15 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
   end
 
   def installment_purchase_params
-    params.permit(:description, :total_amount, :installments_count, :interest_rate, :first_period, :category_id, :vendor_id)
+    params.permit(:description, :total_amount, :installments_count, :interest_rate, :first_period, :category_id, :vendor_id, :payment_method_id)
   end
 
   # Valida todo junto para devolver todos los errores en una sola respuesta. Devuelve true si no hay
-  # ningún error (los del modelo ni un vendor_id inexistente).
+  # ningún error (ni del modelo, ni un vendor_id o payment_method_id inexistente).
   def valid_with_vendor?(purchase)
     purchase.validate
     purchase.errors.add(:vendor_id, :not_found) unless vendor_valido?
+    purchase.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(purchase)
     purchase.errors.empty?
   end
 
@@ -88,6 +89,7 @@ class Api::V1::InstallmentPurchasesController < Api::V1::BaseController
       first_period: purchase.first_period,
       category_id: purchase.category_id,
       vendor_id: purchase.vendor_id,
+      payment_method_id: purchase.payment_method_id,
       installment_amount: purchase.monto_por_cuota,
       total_with_interest: purchase.total_con_interes,
       remaining_installments: purchase.cuotas_restantes

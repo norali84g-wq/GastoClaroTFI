@@ -7,6 +7,7 @@ class User < ApplicationRecord
   has_many :expenses, dependent: :destroy
   has_many :incomes, dependent: :destroy
   has_many :budgets, dependent: :destroy
+  has_many :payment_methods, dependent: :destroy
 
   normalizes :user, with: ->(value) { value.to_s.strip.downcase }
   # Un email vacío se guarda como NULL: el índice único de MySQL acepta varios NULL pero no varios ''.

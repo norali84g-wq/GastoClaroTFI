@@ -50,6 +50,8 @@ tags:
     description: Metas del grupo familiar. El aporte de ahorro no es consumo.
   - name: Presupuestos
     description: Tope de gasto por categoría y mes, y las alertas que se generan al acercarse o pasarse.
+  - name: Medios de pago
+    description: Nombre de cada medio de pago del usuario (por ejemplo, una tarjeta) y su mantenimiento mensual. No se guardan datos de la tarjeta.
   - name: Compras en cuotas
     description: Compras del grupo familiar. Las cuotas no crean consumo.
   - name: Gastos fijos
@@ -890,14 +892,169 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
+  /payment_methods:
+    get:
+      tags: [Medios de pago]
+      summary: Listar medios de pago
+      description: Medios de pago del usuario, ordenados por nombre. El administrador ve los de todos.
+      operationId: listPaymentMethods
+      responses:
+        "200":
+          description: Lista de medios de pago.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Medios de pago]
+      summary: Crear un medio de pago
+      description: El medio de pago queda a nombre del usuario; cualquier `user_id` enviado se ignora.
+      operationId: createPaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodInput"
+      responses:
+        "201":
+          description: Medio de pago creado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /payment_methods/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Medios de pago]
+      summary: Editar un medio de pago
+      description: Acepta los mismos campos que al crear, todos opcionales.
+      operationId: updatePaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodUpdate"
+      responses:
+        "200":
+          description: Medio de pago actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags: [Medios de pago]
+      summary: Borrar un medio de pago
+      description: Los gastos y las compras en cuotas que lo usaban quedan sin medio de pago.
+      operationId: deletePaymentMethod
+      responses:
+        "204":
+          description: Medio de pago borrado. Sin cuerpo.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /installment_purchases/{installment_purchase_id}/installments:
+    parameters:
+      - name: installment_purchase_id
+        in: path
+        required: true
+        description: Identificador de la compra en cuotas. Si no existe o es de otro grupo, responde `404`.
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+    get:
+      tags: [Compras en cuotas]
+      summary: Listar las cuotas de una compra
+      description: Una cuota por mes, ordenadas por número, con su monto y si ya se pagó. Todas valen `installment_amount` salvo la última, que absorbe la diferencia del redondeo para que la suma dé exactamente `total_with_interest`.
+      operationId: listInstallments
+      responses:
+        "200":
+          description: Cuotas de la compra.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Installment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /installment_purchases/{installment_purchase_id}/installments/{id}:
+    parameters:
+      - name: installment_purchase_id
+        in: path
+        required: true
+        description: Identificador de la compra en cuotas.
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Compras en cuotas]
+      summary: Marcar una cuota como pagada o no pagada
+      description: Es solo un registro para el usuario. No cambia `remaining_installments` ni `/installment_purchases/monthly_total`, que se calculan por fecha.
+      operationId: updateInstallment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paid]
+              properties:
+                paid:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Cuota actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Installment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
   /installment_purchases/monthly_total:
     get:
       tags: [Compras en cuotas]
       summary: Total de un mes
       description: |
-        Las cuotas que vencen ese mes más el mantenimiento mensual de la
-        tarjeta. El mantenimiento se suma **una sola vez** y solo si ese mes
-        vence al menos una cuota. Cuenta las compras del grupo familiar.
+        Las cuotas que vencen ese mes más el mantenimiento mensual. Cada medio
+        de pago con cuotas ese mes suma su `monthly_fee` **una sola vez**; si hay
+        compras sin medio de pago, se suma además el mantenimiento del grupo
+        (`/installment_settings`), también una sola vez. Si ese mes no vence
+        ninguna cuota, no se suma mantenimiento. Cuenta las compras del grupo
+        familiar, por fecha: no tiene en cuenta si las cuotas están marcadas como
+        pagadas. En el último mes de una compra, `installment_amount` es el de la
+        última cuota, que puede diferir en centavos.
       operationId: getInstallmentMonthlyTotal
       parameters:
         - name: period
@@ -1780,7 +1937,7 @@ components:
     # --- Gastos ---
     Expense:
       type: object
-      required: [id, amount, date, description, is_fixed, purchase_channel, user, vendor_id, category, expense_items]
+      required: [id, amount, date, description, is_fixed, purchase_channel, user, vendor_id, payment_method_id, category, expense_items]
       properties:
         id:
           type: integer
@@ -1806,6 +1963,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/UserRef"
           readOnly: true
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           nullable: true
@@ -1868,6 +2029,10 @@ components:
         description:
           type: string
           example: Productos de limpieza
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           description: Opcional. El front no lo envía; si se envía, tiene que existir.
@@ -1899,6 +2064,10 @@ components:
         description:
           type: string
           example: Compra semanal
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           example: 1
@@ -2212,10 +2381,70 @@ components:
         financial_tip:
           $ref: "#/components/schemas/FinancialTipRef"
 
+    # --- Medios de pago ---
+    PaymentMethod:
+      type: object
+      required: [id, name, monthly_fee, user]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          example: Visa Galicia
+        monthly_fee:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Mantenimiento mensual. `0` si no tiene.
+        user:
+          $ref: "#/components/schemas/UserRef"
+    PaymentMethodInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Visa Galicia
+        monthly_fee:
+          type: number
+          minimum: 0
+          description: Por defecto `0`.
+          example: 3500
+    PaymentMethodUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        monthly_fee:
+          type: number
+          minimum: 0
+      example:
+        monthly_fee: 4000
+    Installment:
+      type: object
+      required: [id, number, period, amount, paid]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: integer
+          description: Número de la cuota (1 es la primera).
+          example: 1
+        period:
+          $ref: "#/components/schemas/Period"
+        amount:
+          $ref: "#/components/schemas/Decimal"
+        paid:
+          type: boolean
+          example: false
+
     # --- Compras en cuotas ---
     InstallmentPurchase:
       type: object
-      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, total_with_interest, installment_amount, remaining_installments]
+      required: [id, description, total_amount, installments_count, interest_rate, first_period, category_id, vendor_id, payment_method_id, total_with_interest, installment_amount, remaining_installments]
       properties:
         id:
           type: integer
@@ -2236,6 +2465,10 @@ components:
         category_id:
           type: integer
           example: 4
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           nullable: true
@@ -2252,12 +2485,12 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           readOnly: true
-          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`).
+          description: Calculado. `total_with_interest` dividido en `installments_count`, redondeado a 2 decimales. No incluye el mantenimiento de la tarjeta, que se suma una vez por mes (ver `/installment_purchases/monthly_total`). La última cuota puede diferir en centavos para que la suma dé exacto.
         remaining_installments:
           type: integer
           readOnly: true
           minimum: 0
-          description: Calculado. Cuotas que todavía no vencieron. No cuenta la del mes en curso, que ya se considera paga (una compra de 1 cuota que empieza este mes tiene `0`; una de 12 tiene `11`). Nunca menos de `0`.
+          description: Calculado. Cuotas que todavía no vencieron. No cuenta la del mes en curso, que ya se considera paga (una compra de 1 cuota que empieza este mes tiene `0`; una de 12 tiene `11`). Nunca menos de `0`. Se cuenta por fecha, así que no depende de las cuotas marcadas como pagadas.
     InstallmentPurchaseInput:
       type: object
       required: [description, total_amount, installments_count, first_period, category_id]
@@ -2286,6 +2519,10 @@ components:
         category_id:
           type: integer
           description: Tiene que existir.
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           description: Si se envía, tiene que existir.
@@ -2316,6 +2553,10 @@ components:
         category_id:
           type: integer
           example: 4
+        payment_method_id:
+          type: integer
+          nullable: true
+          description: Medio de pago, opcional. Si se envía, tiene que existir y ser del usuario. Si se reenvía el mismo que ya tiene el registro, se acepta aunque sea de otro usuario (otro integrante del grupo puede editar la compra sin cambiarle la tarjeta).
         vendor_id:
           type: integer
           example: 1

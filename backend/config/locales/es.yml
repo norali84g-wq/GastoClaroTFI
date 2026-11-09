@@ -23,9 +23,13 @@ es:
             vendor_id:
               # Se usa cuando el comercio no existe.
               not_found: "no existe"
+            payment_method_id:
+              not_found: "no existe"
         installment_purchase:
           attributes:
             vendor_id:
+              not_found: "no existe"
+            payment_method_id:
               not_found: "no existe"
     attributes:
       user:

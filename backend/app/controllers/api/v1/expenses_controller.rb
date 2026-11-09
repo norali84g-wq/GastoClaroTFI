@@ -28,6 +28,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
     # Se valida todo junto para devolver todos los errores en una sola respuesta.
     expense.validate
     expense.errors.add(:vendor_id, :not_found) unless vendor_valido?
+    expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(expense)
     expense.errors.add(:purchase_channel, :invalid) if purchase_channel_invalido?
 
     if expense.errors.empty? && expense.save
@@ -43,6 +44,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
     # Misma validación conjunta que en create: se devuelven todos los errores juntos.
     @expense.validate
     @expense.errors.add(:vendor_id, :not_found) unless vendor_valido?
+    @expense.errors.add(:payment_method_id, :not_found) unless payment_method_valido?(@expense)
     @expense.errors.add(:purchase_channel, :invalid) if purchase_channel_invalido?
 
     if @expense.errors.empty? && @expense.save
@@ -90,7 +92,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
   # fuera del enum haría fallar la asignación con un error 500 en vez de un 422.
   def expense_params
     permitted = params.permit(
-      :amount, :date, :description, :category_id, :vendor_id, :is_fixed, :purchase_channel,
+      :amount, :date, :description, :category_id, :vendor_id, :payment_method_id, :is_fixed, :purchase_channel,
       expense_items_attributes: item_fields
     )
     permitted.delete(:purchase_channel) unless Expense.purchase_channels.key?(permitted[:purchase_channel])
@@ -111,6 +113,7 @@ class Api::V1::ExpensesController < Api::V1::BaseController
       purchase_channel: expense.purchase_channel,
       user: { id: expense.user_id, user: expense.user.user },
       vendor_id: expense.vendor_id,
+      payment_method_id: expense.payment_method_id,
       category: { id: expense.category_id, name: expense.category.name },
       expense_items: expense.expense_items.map { |item|
         {

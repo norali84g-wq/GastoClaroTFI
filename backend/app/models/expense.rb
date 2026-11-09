@@ -3,6 +3,7 @@ class Expense < ApplicationRecord
   belongs_to :family_group
   belongs_to :category
   belongs_to :vendor, optional: true
+  belongs_to :payment_method, optional: true
   has_many :expense_items, dependent: :destroy
   has_one_attached :receipt_image
 
