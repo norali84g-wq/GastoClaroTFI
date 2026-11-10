@@ -159,6 +159,9 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `user` | string | No | nombre de usuario |
 | `email` | string | **Sí** | el admin del seed no tiene email |
 | `admin` | boolean | No | `true` si es administrador. Sirve solo para decidir qué mostrar; los permisos los controla siempre la API |
+| `first_name` | string | **Sí** | nombre. `null` en los usuarios que no lo cargaron (admin, demo) |
+| `last_name` | string | **Sí** | apellido |
+| `birth_date` | string `YYYY-MM-DD` | **Sí** | fecha de nacimiento |
 
 ### Categoría
 
@@ -260,7 +263,7 @@ El nombre de usuario no distingue mayúsculas de minúsculas ni espacios al prin
 
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|
-| `user` | string | Sí | nombre de usuario (se guarda en minúsculas y sin espacios alrededor) |
+| `user` | string | Sí | nombre de usuario **o mail** (no distingue mayúsculas ni espacios alrededor) |
 | `password` | string | Sí | — |
 
 ```bash
@@ -291,10 +294,13 @@ Público. Crea una cuenta de usuario común y devuelve su token. Si el pedido in
 
 | Campo | Tipo | Obligatorio | Validación |
 |-------|------|:-----------:|------------|
-| `user` | string | Sí | único |
+| `user` | string | No | nombre de usuario, único. Si no se envía, el usuario es el mail |
 | `email` | string | Sí | formato válido, único (sin distinguir mayúsculas) |
 | `password` | string | Sí | mínimo 8 caracteres |
 | `password_confirmation` | string | Sí | igual a `password` |
+| `first_name` | string | No | hasta 60 caracteres |
+| `last_name` | string | No | hasta 60 caracteres |
+| `birth_date` | string `YYYY-MM-DD` | No | fecha pasada, desde 1900. Si no es válida: `422` en `birth_date` |
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/register \

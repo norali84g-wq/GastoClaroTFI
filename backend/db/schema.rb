@@ -231,6 +231,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.datetime "updated_at", null: false
     t.string "email"
     t.integer "token_version", default: 0, null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.date "birth_date"
     t.index ["email"], name: "index_users_on_email_unique", unique: true
     t.index ["family_group_id"], name: "index_users_on_family_group_id"
     t.index ["user"], name: "index_users_on_user", unique: true

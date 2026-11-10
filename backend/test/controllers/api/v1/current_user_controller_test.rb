@@ -15,7 +15,8 @@ class Api::V1::CurrentUserControllerTest < ActionDispatch::IntegrationTest
     get "/api/v1/me", headers: headers_for(@comun)
 
     assert_response :ok
-    esperado = { "id" => @comun.id, "user" => "comun", "email" => "comun@example.com", "admin" => false }
+    esperado = { "id" => @comun.id, "user" => "comun", "email" => "comun@example.com", "admin" => false,
+                 "first_name" => nil, "last_name" => nil, "birth_date" => nil }
     assert_equal esperado, response.parsed_body
   end
 
