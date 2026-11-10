@@ -18,6 +18,8 @@ class Api::V1::SavingsGoalsController < Api::V1::BaseController
   end
 
   def update
+    @savings_goal.image.purge if remove_image?
+
     if @savings_goal.update(savings_goal_params)
       render json: savings_goal_json(@savings_goal)
     else
@@ -39,7 +41,12 @@ class Api::V1::SavingsGoalsController < Api::V1::BaseController
   end
 
   def savings_goal_params
-    params.permit(:name, :target_amount, :saved_amount, :deadline)
+    params.permit(:name, :target_amount, :saved_amount, :deadline, :image)
+  end
+
+  # El front pide borrar la imagen mandando remove_image=true.
+  def remove_image?
+    ActiveModel::Type::Boolean.new.cast(params[:remove_image]) == true
   end
 
   # El progreso no se guarda: se calcula cada vez (monto ahorrado / monto objetivo).
@@ -50,7 +57,8 @@ class Api::V1::SavingsGoalsController < Api::V1::BaseController
       target_amount: goal.target_amount,
       saved_amount: goal.saved_amount,
       deadline: goal.deadline,
-      progress_percentage: goal.progress
+      progress_percentage: goal.progress,
+      image_url: goal.image.attached? ? Rails.application.routes.url_helpers.rails_blob_path(goal.image, only_path: true) : nil
     }
   end
 end

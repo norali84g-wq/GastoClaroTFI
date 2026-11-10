@@ -142,4 +142,53 @@ class Api::V1::SavingsGoalsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  PNG_1X1 = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==").freeze
+
+  def imagen_png(nombre = "meta.png", tipo = "image/png", contenido = PNG_1X1)
+    Rack::Test::UploadedFile.new(StringIO.new(contenido), tipo, original_filename: nombre)
+  end
+
+  test "las metas sin imagen devuelven image_url nulo" do
+    get "/api/v1/savings_goals", headers: headers_for(@user)
+
+    assert_nil response.parsed_body.first["image_url"]
+  end
+
+  test "create acepta una imagen y devuelve su image_url" do
+    post "/api/v1/savings_goals", headers: headers_for(@user),
+         params: { name: "Moto", target_amount: 900, image: imagen_png }
+
+    assert_response :created
+    assert_match %r{\A/rails/active_storage/blobs/}, response.parsed_body["image_url"]
+    assert SavingsGoal.find(response.parsed_body["id"]).image.attached?
+  end
+
+  test "create rechaza una imagen que no es JPG, PNG o WebP" do
+    post "/api/v1/savings_goals", headers: headers_for(@user),
+         params: { name: "Moto", target_amount: 900, image: imagen_png("meta.gif", "image/gif") }
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "image"
+  end
+
+  test "create rechaza una imagen de más de 2 MB" do
+    grande = PNG_1X1 + ("0" * (2.megabytes + 1))
+    post "/api/v1/savings_goals", headers: headers_for(@user),
+         params: { name: "Moto", target_amount: 900, image: imagen_png("grande.png", "image/png", grande) }
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "image"
+  end
+
+  test "update puede cambiar y quitar la imagen" do
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user), params: { image: imagen_png }
+    assert_response :ok
+    assert @meta.reload.image.attached?
+
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user), params: { remove_image: "true" }
+    assert_response :ok
+    assert_nil response.parsed_body["image_url"]
+    assert_not @meta.reload.image.attached?
+  end
 end
