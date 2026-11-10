@@ -145,6 +145,10 @@ class Api::V1::SavingsGoalsControllerTest < ActionDispatch::IntegrationTest
 
   PNG_1X1 = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==").freeze
 
+  # Active Storage detecta el tipo real mirando los bytes, no la extensión: para probar el rechazo
+  # hay que mandar un GIF de verdad.
+  GIF_1X1 = Base64.decode64("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7").freeze
+
   def imagen_png(nombre = "meta.png", tipo = "image/png", contenido = PNG_1X1)
     Rack::Test::UploadedFile.new(StringIO.new(contenido), tipo, original_filename: nombre)
   end
@@ -166,7 +170,7 @@ class Api::V1::SavingsGoalsControllerTest < ActionDispatch::IntegrationTest
 
   test "create rechaza una imagen que no es JPG, PNG o WebP" do
     post "/api/v1/savings_goals", headers: headers_for(@user),
-         params: { name: "Moto", target_amount: 900, image: imagen_png("meta.gif", "image/gif") }
+         params: { name: "Moto", target_amount: 900, image: imagen_png("meta.gif", "image/gif", GIF_1X1) }
 
     assert_response :unprocessable_entity
     assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "image"
