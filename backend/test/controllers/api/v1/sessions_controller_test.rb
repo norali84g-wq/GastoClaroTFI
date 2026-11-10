@@ -14,6 +14,13 @@ class Api::V1::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "tester", response.parsed_body["user"]["user"]
   end
 
+  test "el vencimiento del token del login sale siempre en UTC, aunque la app use hora argentina" do
+    post "/api/v1/login", params: { user: "tester", password: "password123" }, as: :json
+
+    assert_response :ok
+    assert_match(/Z\z/, response.parsed_body["expires_at"])
+  end
+
   test "login con contrasena incorrecta da 401" do
     post "/api/v1/login", params: { user: "tester", password: "equivocada" }, as: :json
 

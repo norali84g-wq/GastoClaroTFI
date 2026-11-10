@@ -4,7 +4,7 @@ class SessionSerializer
     expires_at = AuthToken::EXPIRATION.from_now
     {
       token: AuthToken.encode(user, expires_at),
-      expires_at: expires_at.iso8601,
+      expires_at: expires_at.utc.iso8601, # siempre en UTC ("Z"), como dice el contrato de la API
       user: UserSerializer.call(user)
     }
   end
