@@ -126,7 +126,7 @@ unless Rails.env.production?
     expense.save!
   end
 
-  # Historia de los últimos cinco meses: algo de cada categoría, con variaciones entre meses.
+  # Historia de los últimos seis meses: algo de cada categoría, con variaciones entre meses.
   (1..6).each do |back|
     etiqueta = today.prev_month(back).strftime("%m/%Y")
     crear_gasto.call(description: "Supermercado #{etiqueta}", category: supermercado,
