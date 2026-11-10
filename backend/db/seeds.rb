@@ -25,6 +25,19 @@ indumentaria = Category.find_or_create_by!(name: "Indumentaria") do |c|
   c.tracks_installments = true
 end
 
+# Subcategorías: "Alimentos" agrupa Supermercado, Carnicería, Verdulería y Panadería; "Servicios del
+# hogar" agrupa Luz, Gas e Internet. Los gastos se cargan en la subcategoría y las estadísticas los
+# suman a su categoría principal.
+alimentos = Category.find_or_create_by!(name: "Alimentos")
+supermercado.update!(parent: alimentos) if supermercado.parent_id.nil?
+carniceria = Category.find_or_create_by!(name: "Carnicería") { |c| c.parent = alimentos }
+verduleria = Category.find_or_create_by!(name: "Verdulería") { |c| c.parent = alimentos }
+panaderia = Category.find_or_create_by!(name: "Panadería") { |c| c.parent = alimentos }
+servicios = Category.find_or_create_by!(name: "Servicios del hogar")
+luz = Category.find_or_create_by!(name: "Luz") { |c| c.parent = servicios }
+gas = Category.find_or_create_by!(name: "Gas") { |c| c.parent = servicios }
+internet = Category.find_or_create_by!(name: "Internet") { |c| c.parent = servicios }
+
 # Datos de demostración: un usuario de prueba con ingresos y gastos para que el panel muestre algo.
 # No es una cuenta real y no se crea en producción. Se pueden volver a correr sin duplicar nada.
 unless Rails.env.production?
@@ -139,6 +152,18 @@ unless Rails.env.production?
                      date: fecha.call(back, 20), amount: 8_000 + (back * 700))
     crear_gasto.call(description: "Netflix #{etiqueta}", category: ocio, date: fecha.call(back, 3),
                      amount: 9_999, fixed: true)
+    crear_gasto.call(description: "Carnicería #{etiqueta}", category: carniceria,
+                     date: fecha.call(back, 7), amount: 14_000 + (back * 800))
+    crear_gasto.call(description: "Verdulería #{etiqueta}", category: verduleria,
+                     date: fecha.call(back, 8), amount: 6_500 + (back * 400))
+    crear_gasto.call(description: "Panadería #{etiqueta}", category: panaderia,
+                     date: fecha.call(back, 9), amount: 4_200 + (back * 250))
+    crear_gasto.call(description: "Luz #{etiqueta}", category: luz, date: fecha.call(back, 12),
+                     amount: 11_000 + (back * 600), fixed: true)
+    crear_gasto.call(description: "Gas #{etiqueta}", category: gas, date: fecha.call(back, 15),
+                     amount: 6_000 + (back * 300), fixed: true)
+    crear_gasto.call(description: "Internet #{etiqueta}", category: internet, date: fecha.call(back, 2),
+                     amount: 18_500, fixed: true)
   end
 
   # Este mes: más movimientos para que las categorías y las alertas se vean.
@@ -148,6 +173,12 @@ unless Rails.env.production?
                    amount: 20_000, payment_method: visa)
   crear_gasto.call(description: "Netflix", category: ocio, date: fecha.call(0, 5),
                    amount: 9_999, fixed: true)
+  crear_gasto.call(description: "Carnicería", category: carniceria, date: fecha.call(0, 6), amount: 15_200)
+  crear_gasto.call(description: "Verdulería", category: verduleria, date: fecha.call(0, 7), amount: 7_300)
+  crear_gasto.call(description: "Panadería", category: panaderia, date: fecha.call(0, 7), amount: 4_800)
+  crear_gasto.call(description: "Luz", category: luz, date: fecha.call(0, 9), amount: 12_400, fixed: true)
+  crear_gasto.call(description: "Internet", category: internet, date: fecha.call(0, 2), amount: 18_500,
+                   fixed: true)
   crear_gasto.call(description: "Almuerzo con amigas", category: ocio, date: fecha.call(0, 18),
                    amount: 5_400, channel: :delivery)
 
