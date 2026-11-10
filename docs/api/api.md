@@ -168,6 +168,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `name` | string | No | nombre |
 | `parent_id` | integer | **Sí** | id de la categoría padre; `null` si es una categoría principal |
 | `tracks_installments` | boolean | **Sí** | `null` si no se indicó |
+| `icon` | string | **Sí** | clave del ícono que el front muestra (minúsculas, números, `-` y `_`, hasta 40 caracteres). `null` si no se eligió: el front usa uno según el nombre. Solo el admin lo puede cambiar, igual que el resto de la categoría |
 
 ### Gasto
 
@@ -1121,6 +1122,7 @@ El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por c
 | `id` | integer | No | identificador |
 | `name` | string | No | cómo se llama (por ejemplo `Visa Galicia`) |
 | `monthly_fee` | string decimal | No | mantenimiento mensual (`0` si no tiene) |
+| `icon` | string | **Sí** | clave del ícono elegido para el medio de pago (mismo formato que el de la categoría). `null` si no se eligió. Se envía en `POST` y `PATCH` |
 | `user` | objeto `{ id, user }` | No | dueño |
 
 ### `GET /payment_methods`

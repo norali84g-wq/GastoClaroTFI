@@ -299,4 +299,27 @@ class Api::V1::CategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 600, decimal(admin["real_total"])
     assert_equal 1069, decimal(admin["planned_total"])
   end
+
+  test "el admin elige el icono de una categoria y la API lo devuelve" do
+    post "/api/v1/categories", params: { name: "Auto", icon: "auto" }, headers: @admin_headers, as: :json
+
+    assert_response :created
+    assert_equal "auto", response.parsed_body["icon"]
+
+    get "/api/v1/categories", headers: @headers
+    assert_equal "auto", response.parsed_body.find { |c| c["name"] == "Auto" }["icon"]
+  end
+
+  test "una categoria sin icono devuelve icon nulo" do
+    post "/api/v1/categories", params: { name: "Varios" }, headers: @admin_headers, as: :json
+
+    assert_nil response.parsed_body["icon"]
+  end
+
+  test "un icono con formato invalido da 422" do
+    post "/api/v1/categories", params: { name: "Auto", icon: "Mi Icono!" }, headers: @admin_headers, as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "icon"
+  end
 end
