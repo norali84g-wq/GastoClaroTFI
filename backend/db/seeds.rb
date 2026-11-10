@@ -101,7 +101,7 @@ unless Rails.env.production?
   end
 
   # Ingresos de los meses anteriores y un trabajo extra este mes.
-  (2..5).each do |back|
+  (2..6).each do |back|
     mes = today.prev_month(back)
     Income.find_or_create_by!(user: demo, description: "Sueldo #{mes.strftime('%m/%Y')}") do |income|
       income.amount = 450_000 - (back * 10_000)
@@ -127,7 +127,7 @@ unless Rails.env.production?
   end
 
   # Historia de los últimos cinco meses: algo de cada categoría, con variaciones entre meses.
-  (1..5).each do |back|
+  (1..6).each do |back|
     etiqueta = today.prev_month(back).strftime("%m/%Y")
     crear_gasto.call(description: "Supermercado #{etiqueta}", category: supermercado,
                      date: fecha.call(back, 5), amount: 30_000 + (back * 1_500))
