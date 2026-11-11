@@ -66,7 +66,7 @@ class Api::V1::CategoriesController < Api::V1::BaseController
   end
 
   def category_params
-    params.permit(:name, :parent_id, :tracks_installments)
+    params.permit(:name, :parent_id, :tracks_installments, :icon)
   end
 
   def category_json(category)
@@ -74,7 +74,8 @@ class Api::V1::CategoriesController < Api::V1::BaseController
       id: category.id,
       name: category.name,
       parent_id: category.parent_id,
-      tracks_installments: category.tracks_installments
+      tracks_installments: category.tracks_installments,
+      icon: category.icon.presence
     }
   end
 end

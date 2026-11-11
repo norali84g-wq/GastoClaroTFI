@@ -168,6 +168,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `name` | string | No | nombre |
 | `parent_id` | integer | **Sí** | id de la categoría padre; `null` si es una categoría principal |
 | `tracks_installments` | boolean | **Sí** | `null` si no se indicó |
+| `icon` | string | **Sí** | clave del ícono que el front muestra (minúsculas, números, `-` y `_`, hasta 40 caracteres). `null` si no se eligió: el front usa uno según el nombre. Solo el admin lo puede cambiar, igual que el resto de la categoría |
 
 ### Gasto
 
@@ -215,6 +216,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `saved_amount` | string decimal | No | monto ahorrado hasta ahora |
 | `deadline` | string `YYYY-MM-DD` | **Sí** | fecha límite, si la hay |
 | `progress_percentage` | integer | No | **calculado, no se guarda**: `saved_amount / target_amount × 100`, redondeado. Puede superar `100` si se ahorró más que el objetivo |
+| `image_url` | string | **Sí** | ruta (sin dominio) de la imagen de la meta, por ejemplo `/rails/active_storage/blobs/...`; el front la completa con el origen de la API. `null` si no tiene imagen |
 
 ### Ítem de la lista de gastos fijos
 
@@ -934,7 +936,7 @@ curl http://localhost:3000/api/v1/savings_goals -H "Authorization: Bearer <TOKEN
 
 ```json
 [
-  { "id": 1, "name": "Viaje", "target_amount": "1000.0", "saved_amount": "250.0", "deadline": null, "progress_percentage": 25 }
+  { "id": 1, "name": "Viaje", "target_amount": "1000.0", "saved_amount": "250.0", "deadline": null, "progress_percentage": 25, "image_url": null }
 ]
 ```
 
@@ -948,6 +950,7 @@ Protegido. La meta queda en el grupo familiar del usuario; cualquier `family_gro
 | `target_amount` | number | Sí | mayor a 0 |
 | `saved_amount` | number | No | mayor o igual a 0; por defecto `0` |
 | `deadline` | string `YYYY-MM-DD` | No | fecha válida |
+| `image` | archivo | No | JPG, PNG o WebP, hasta 2 MB. Se envía como `multipart/form-data` |
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/savings_goals \
@@ -958,7 +961,7 @@ curl -X POST http://localhost:3000/api/v1/savings_goals \
 `201`: la meta creada, con la forma **Meta de ahorro**:
 
 ```json
-{ "id": 2, "name": "Notebook", "target_amount": "800.0", "saved_amount": "0.0", "deadline": "2027-03-01", "progress_percentage": 0 }
+{ "id": 2, "name": "Notebook", "target_amount": "800.0", "saved_amount": "0.0", "deadline": "2027-03-01", "progress_percentage": 0, "image_url": null }
 ```
 
 `422` con datos inválidos:
@@ -969,7 +972,7 @@ curl -X POST http://localhost:3000/api/v1/savings_goals \
 
 ### `PATCH /savings_goals/:id`
 
-Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía.
+Protegido. Acepta los mismos campos y reglas que `POST`, todos opcionales. Solo se modifica lo que se envía. Para quitar la imagen de la meta se envía `remove_image=true`.
 
 ```bash
 curl -X PATCH http://localhost:3000/api/v1/savings_goals/<GOAL_ID> \
@@ -1119,6 +1122,7 @@ El **mantenimiento mensual** (`monthly_fee`) se suma una sola vez por mes, por c
 | `id` | integer | No | identificador |
 | `name` | string | No | cómo se llama (por ejemplo `Visa Galicia`) |
 | `monthly_fee` | string decimal | No | mantenimiento mensual (`0` si no tiene) |
+| `icon` | string | **Sí** | clave del ícono elegido para el medio de pago (mismo formato que el de la categoría). `null` si no se eligió. Se envía en `POST` y `PATCH` |
 | `user` | objeto `{ id, user }` | No | dueño |
 
 ### `GET /payment_methods`

@@ -40,7 +40,7 @@ class Api::V1::PaymentMethodsController < Api::V1::BaseController
   end
 
   def payment_method_params
-    params.permit(:name, :monthly_fee)
+    params.permit(:name, :monthly_fee, :icon)
   end
 
   def payment_method_json(payment_method)
@@ -48,6 +48,7 @@ class Api::V1::PaymentMethodsController < Api::V1::BaseController
       id: payment_method.id,
       name: payment_method.name,
       monthly_fee: payment_method.monthly_fee,
+      icon: payment_method.icon.presence,
       user: { id: payment_method.user_id, user: payment_method.user.user }
     }
   end

@@ -1,9 +1,16 @@
 class SavingsGoal < ApplicationRecord
+  # Imagen opcional de la meta (foto o ilustración). Se guarda con Active Storage en disco.
+  IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
+  MAX_IMAGE_SIZE = 2.megabytes
+
   belongs_to :family_group
+  has_one_attached :image
 
   validates :name, presence: true
   validates :target_amount, numericality: { greater_than: 0 }
   validates :saved_amount, numericality: { greater_than_or_equal_to: 0 }
+  validate :image_valid
+
 
   def progress
     return 0 if target_amount.zero?
@@ -31,5 +38,15 @@ class SavingsGoal < ApplicationRecord
 
   def cumplida?
     saved_amount >= target_amount
+  end
+
+  private
+
+  # Solo imágenes JPG, PNG o WebP de hasta 2 MB, para que la app no se vuelva pesada.
+  def image_valid
+    return unless image.attached?
+
+    errors.add(:image, "debe ser JPG, PNG o WebP") unless IMAGE_TYPES.include?(image.blob.content_type)
+    errors.add(:image, "no puede pesar más de 2 MB") if image.blob.byte_size > MAX_IMAGE_SIZE
   end
 end

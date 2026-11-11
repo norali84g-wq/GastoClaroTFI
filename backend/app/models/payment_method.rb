@@ -8,4 +8,6 @@ class PaymentMethod < ApplicationRecord
 
   validates :name, presence: true
   validates :monthly_fee, numericality: { greater_than_or_equal_to: 0 }
+  # Clave del ícono: solo minúsculas, números, guiones y guion bajo (el front la usa para elegir la imagen).
+  validates :icon, format: { with: /\A[a-z0-9_-]{1,40}\z/ }, allow_blank: true
 end

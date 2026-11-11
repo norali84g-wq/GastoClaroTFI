@@ -8,6 +8,8 @@ class Category < ApplicationRecord
   validates :name, presence: true
   validates :parent, presence: true, if: -> { parent_id.present? }
   validate :parent_is_not_self_or_descendant
+  # Clave del ícono: solo minúsculas, números, guiones y guion bajo (el front la usa para elegir la imagen).
+  validates :icon, format: { with: /\A[a-z0-9_-]{1,40}\z/ }, allow_blank: true
 
   # Ids de todas las subcategorías de esta categoría, de cualquier nivel. Si los datos ya tuvieran un
   # ciclo, no se repite ningún id, así que siempre termina.

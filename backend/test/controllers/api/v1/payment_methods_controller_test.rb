@@ -93,4 +93,23 @@ class Api::V1::PaymentMethodsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  test "create y update guardan el icono elegido y la API lo devuelve" do
+    post "/api/v1/payment_methods", params: { name: "Naranja", icon: "tarjeta-azul" }, headers: headers_for(@user)
+
+    assert_response :created
+    assert_equal "tarjeta-azul", response.parsed_body["icon"]
+
+    patch "/api/v1/payment_methods/#{response.parsed_body['id']}", params: { icon: "efectivo" },
+                                                                 headers: headers_for(@user)
+    assert_response :ok
+    assert_equal "efectivo", response.parsed_body["icon"]
+  end
+
+  test "un icono con formato invalido da 422" do
+    post "/api/v1/payment_methods", params: { name: "Naranja", icon: "../x" }, headers: headers_for(@user)
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "icon"
+  end
 end
