@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -61,6 +61,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.index ["category_id"], name: "index_budgets_on_category_id"
     t.index ["user_id", "category_id", "period"], name: "index_budgets_on_user_id_and_category_id_and_period", unique: true
     t.index ["user_id"], name: "index_budgets_on_user_id"
+    t.check_constraint "`amount` > 0", name: "chk_budgets_amount_positive"
   end
 
   create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -82,6 +83,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "updated_at", null: false
     t.string "unit", default: "unidad", null: false
     t.index ["expense_id"], name: "index_expense_items_on_expense_id"
+    t.index ["name"], name: "index_expense_items_on_name"
+    t.check_constraint "`quantity` > 0", name: "chk_expense_items_quantity_positive"
+    t.check_constraint "`unit_price` >= 0", name: "chk_expense_items_unit_price_not_negative"
   end
 
   create_table "expenses", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -100,8 +104,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["family_group_id"], name: "index_expenses_on_family_group_id"
     t.index ["payment_method_id"], name: "index_expenses_on_payment_method_id"
+    t.index ["user_id", "date"], name: "index_expenses_on_user_id_and_date"
     t.index ["user_id"], name: "index_expenses_on_user_id"
     t.index ["vendor_id"], name: "index_expenses_on_vendor_id"
+    t.check_constraint "`amount` > 0", name: "chk_expenses_amount_positive"
   end
 
   create_table "family_groups", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -110,6 +116,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.decimal "card_monthly_fee", precision: 10, scale: 2, default: "0.0", null: false
+    t.check_constraint "(`savings_percentage` >= 0) and (`savings_percentage` <= 100)", name: "chk_family_groups_savings_range"
+    t.check_constraint "`card_monthly_fee` >= 0", name: "chk_family_groups_fee_not_negative"
   end
 
   create_table "financial_tips", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -126,7 +134,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "description"
+    t.index ["user_id", "date"], name: "index_incomes_on_user_id_and_date"
     t.index ["user_id"], name: "index_incomes_on_user_id"
+    t.check_constraint "`amount` > 0", name: "chk_incomes_amount_positive"
   end
 
   create_table "installment_purchases", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -145,6 +155,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.index ["family_group_id"], name: "index_installment_purchases_on_family_group_id"
     t.index ["payment_method_id"], name: "index_installment_purchases_on_payment_method_id"
     t.index ["vendor_id"], name: "index_installment_purchases_on_vendor_id"
+    t.check_constraint "(`interest_rate` >= 0) and (`interest_rate` <= 100)", name: "chk_installment_purchases_interest_range"
+    t.check_constraint "`installments_count` > 0", name: "chk_installment_purchases_count_positive"
+    t.check_constraint "`total_amount` > 0", name: "chk_installment_purchases_total_positive"
   end
 
   create_table "installments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -157,6 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "updated_at", null: false
     t.index ["installment_purchase_id", "number"], name: "index_installments_on_installment_purchase_id_and_number", unique: true
     t.index ["installment_purchase_id"], name: "index_installments_on_installment_purchase_id"
+    t.check_constraint "`amount` >= 0", name: "chk_installments_amount_not_negative"
   end
 
   create_table "payment_methods", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -167,6 +181,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "updated_at", null: false
     t.string "icon"
     t.index ["user_id"], name: "index_payment_methods_on_user_id"
+    t.check_constraint "`monthly_fee` >= 0", name: "chk_payment_methods_fee_not_negative"
   end
 
   create_table "reference_indices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -186,6 +201,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["family_group_id"], name: "index_savings_goals_on_family_group_id"
+    t.check_constraint "`saved_amount` >= 0", name: "chk_savings_goals_saved_not_negative"
+    t.check_constraint "`target_amount` > 0", name: "chk_savings_goals_target_positive"
   end
 
   create_table "shopping_list_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -199,7 +216,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.decimal "estimated_unit_price", precision: 10, scale: 2, default: "0.0", null: false
     t.boolean "purchased", default: false, null: false
     t.index ["category_id"], name: "index_shopping_list_items_on_category_id"
+    t.index ["family_group_id", "period"], name: "index_shopping_list_items_on_group_and_period"
     t.index ["family_group_id"], name: "index_shopping_list_items_on_family_group_id"
+    t.check_constraint "(`quantity` is null) or (`quantity` > 0)", name: "chk_shopping_list_items_quantity_positive"
+    t.check_constraint "`estimated_unit_price` >= 0", name: "chk_shopping_list_items_price_not_negative"
   end
 
   create_table "users", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -211,6 +231,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.datetime "updated_at", null: false
     t.string "email"
     t.integer "token_version", default: 0, null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.date "birth_date"
     t.index ["email"], name: "index_users_on_email_unique", unique: true
     t.index ["family_group_id"], name: "index_users_on_family_group_id"
     t.index ["user"], name: "index_users_on_user", unique: true

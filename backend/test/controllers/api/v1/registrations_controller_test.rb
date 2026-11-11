@@ -125,4 +125,56 @@ class Api::V1::RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_equal "user", response.parsed_body["errors"].first["field"]
   end
+
+  test "el registro guarda nombre, apellido y fecha de nacimiento, y usa el mail como usuario" do
+    post "/api/v1/register", as: :json, params: {
+      email: "Ana.Perez@Example.com", password: "password123", password_confirmation: "password123",
+      first_name: "  Ana ", last_name: "Pérez", birth_date: "1990-05-17"
+    }
+
+    assert_response :created
+    user = response.parsed_body["user"]
+    assert_equal "ana.perez@example.com", user["user"]
+    assert_equal "Ana", user["first_name"]
+    assert_equal "Pérez", user["last_name"]
+    assert_equal "1990-05-17", user["birth_date"]
+  end
+
+  test "una fecha de nacimiento futura da 422" do
+    post "/api/v1/register", params: valid_params.merge(birth_date: 1.day.from_now.to_date.to_s), as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "birth_date"
+  end
+
+  test "despues de registrarse con mail se puede iniciar sesion con ese mail" do
+    post "/api/v1/register", as: :json, params: {
+      email: "luz@example.com", password: "password123", password_confirmation: "password123"
+    }
+    assert_response :created
+
+    post "/api/v1/login", params: { user: "luz@example.com", password: "password123" }, as: :json
+    assert_response :ok
+  end
+
+  test "registrarse solo con mail usa el mail como usuario y el grupo lleva el nombre" do
+    post "/api/v1/register",
+         params: { email: "ana@example.com", first_name: "Ana", password: "password123",
+                   password_confirmation: "password123" },
+         as: :json
+
+    assert_response :created
+    assert_equal "ana@example.com", response.parsed_body["user"]["user"]
+    assert_equal "Personal - Ana", User.find_by(user: "ana@example.com").family_group.name
+  end
+
+  test "no se puede registrar un usuario con el mail de otra persona" do
+    assert_no_difference "User.count" do
+      post "/api/v1/register", params: valid_params.merge(user: "victima@example.com"), as: :json
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "user"
+  end
 end
+

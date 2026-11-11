@@ -2,7 +2,7 @@ class Api::V1::SessionsController < Api::V1::BaseController
   skip_before_action :authenticate_user!, only: [ :create ]
 
   def create
-    user = User.authenticate_by(user: params[:user].to_s, password: params[:password].to_s)
+    user = authenticate(params[:user].to_s, params[:password].to_s)
     if user
       render json: SessionSerializer.call(user)
     else
@@ -14,5 +14,13 @@ class Api::V1::SessionsController < Api::V1::BaseController
   def destroy
     current_user.revoke_tokens!
     head :no_content
+  end
+
+  private
+
+  # Se puede entrar con el nombre de usuario o con el mail.
+  def authenticate(identifier, password)
+    User.authenticate_by(user: identifier, password: password) ||
+      User.authenticate_by(email: identifier, password: password)
   end
 end

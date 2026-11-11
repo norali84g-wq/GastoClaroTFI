@@ -76,4 +76,13 @@ class Api::V1::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unauthorized
   end
+
+  test "login con el mail en lugar del usuario" do
+    @user.update!(email: "tester@example.com")
+
+    post "/api/v1/login", params: { user: "Tester@Example.com", password: "password123" }, as: :json
+
+    assert_response :ok
+    assert_equal @user.id, response.parsed_body["user"]["id"]
+  end
 end
