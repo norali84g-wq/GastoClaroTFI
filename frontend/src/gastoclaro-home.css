@@ -1,0 +1,288 @@
+.welcome.gc-welcome {
+  display: block;
+  max-width: 76rem;
+  margin: auto;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+.gc-welcome-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.gc-welcome-header .brand {
+  text-align: start;
+}
+.gc-welcome-header .brand-mark {
+  width: clamp(2.5rem, 7vw, 4rem);
+  height: auto;
+}
+.gc-welcome-header .brand strong {
+  font-size: clamp(1.9rem, 5vw, 3.25rem);
+}
+.gc-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: #fff7e4;
+  box-shadow: 0 0.4rem 1.25rem #4a3f2014;
+}
+.gc-hero-copy {
+  padding: clamp(1.25rem, 4vw, 3.25rem);
+}
+.gc-hero-copy h1 {
+  margin: 0 0 0.75rem;
+  color: #123b24;
+  font:
+    bold clamp(2rem, 5vw, 4rem)/1.05 Georgia,
+    serif;
+}
+.gc-hero-copy p {
+  max-width: 34ch;
+}
+.gc-welcome .gc-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gc-benefits,
+.gc-pillars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+}
+.gc-benefits li,
+.gc-pillars div {
+  list-style: none;
+  border: 1px solid #ddd9c5;
+  border-radius: 1rem;
+  background: #fffcf4;
+  padding: 0.85rem;
+}
+.gc-benefits li {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+.gc-benefits svg {
+  width: 1.8rem;
+  height: 1.8rem;
+  color: #216537;
+}
+.gc-entry-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  max-width: 46rem;
+  margin: 1.5rem auto;
+}
+.gc-entry-actions .button {
+  min-height: 3.25rem;
+  border-radius: 2rem;
+  font-weight: 700;
+}
+.gc-entry-actions .secondary {
+  background: #fffdf6;
+}
+.gc-purpose {
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: #eaf1df;
+}
+.gc-motto {
+  margin: 0;
+  text-align: center;
+  color: #245733;
+  font:
+    italic clamp(1.4rem, 3vw, 2rem) Georgia,
+    serif;
+}
+.gc-pillars {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.gc-pillars dt {
+  font-weight: 700;
+}
+.gc-pillars dd {
+  margin: 0.25rem 0 0;
+}
+.dashboard .dashboard-banner {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: clamp(11rem, 20vw, 15rem);
+  align-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  border-radius: 1.25rem;
+}
+.dashboard-banner h1 {
+  margin-block: 0.25rem;
+  font-family: Georgia, serif;
+}
+.gc-equation {
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border-radius: 0.8rem;
+  background: #edf3e4;
+  color: #19452b;
+  font-weight: 700;
+  text-align: center;
+}
+.dashboard .dashboard-grid {
+  grid-template-columns: minmax(0, 2.2fr) minmax(15rem, 1fr);
+}
+.gc-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-width: 0;
+  align-items: start;
+}
+
+.gc-chart-legend,
+.gc-chart-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.gc-chart-months {
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+}
+.gc-history .income {
+  --series: #165f32;
+}
+.gc-history .consumption {
+  --series: #ac5019;
+}
+.gc-history .savings {
+  --series: #577823;
+}
+.gc-chart-legend li::before {
+  display: inline-block;
+  content: '';
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  background: var(--series);
+}
+.gc-history svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gc-chart-axis {
+  fill: none;
+  stroke: #b9c4af;
+}
+.gc-history polyline {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2;
+}
+.gc-history circle {
+  fill: var(--series);
+}
+.gc-table-scroll {
+  overflow-x: auto;
+}
+.gc-history summary {
+  cursor: pointer;
+}
+@media (max-width: 75rem) {
+  .gc-overview {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 58rem) {
+  .dashboard .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 42rem) {
+  .gc-hero,
+  .gc-pillars,
+  .gc-entry-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gc-hero-copy {
+    padding-bottom: 0.4rem;
+  }
+  .gc-welcome .gc-hero img {
+    aspect-ratio: 1.75;
+    object-fit: cover;
+    object-position: center 62%;
+  }
+  .gc-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard .dashboard-banner {
+    min-height: 10rem;
+  }
+}
+.gc-category {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.gc-donut {
+  display: grid;
+  place-items: center;
+  width: clamp(6.5rem, 10vw, 8.5rem);
+  flex-shrink: 0;
+}
+.gc-donut > * {
+  grid-area: 1 / 1;
+}
+.gc-donut-total {
+  max-width: 65%;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+.gc-donut svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gc-category-legend {
+  list-style: none;
+  margin: 0.65rem 0;
+  padding: 0;
+  flex: 1 1 11rem;
+}
+.gc-category-legend li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+  overflow-wrap: anywhere;
+  margin-block: 0.35rem;
+}
+.gc-category-legend small {
+  display: block;
+}
+
+@media (min-width: 24rem) and (max-width: 35rem) {
+  .dashboard-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+  .dashboard-metric {
+    padding: 0.5rem;
+    align-content: start;
+  }
+  .dashboard-metric h2,
+  .dashboard-metric p {
+    font-size: 0.95rem;
+  }
+  .dashboard-metric small {
+    font-size: 0.75rem;
+  }
+}

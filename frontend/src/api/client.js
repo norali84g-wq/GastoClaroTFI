@@ -20,13 +20,14 @@ export function createClient({ baseUrl, getToken, onUnauthorized, fetcher = glob
     const token = publicRoute ? null : getToken();
     const headers = { Accept: 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const multipart = body instanceof FormData;
+    if (body !== undefined && !multipart) headers['Content-Type'] = 'application/json';
 
     const response = await fetcher(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, {
       method,
       headers,
       signal,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: multipart ? body : JSON.stringify(body),
     });
 
     if (!response.ok) {

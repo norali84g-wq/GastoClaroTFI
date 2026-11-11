@@ -1,6 +1,8 @@
-import { useSyncExternalStore } from 'react';
+import { createContext, useSyncExternalStore } from 'react';
 import { createClient } from '../api/client.js';
 import { createResources } from '../api/resources.js';
+
+export const AccountContext = createContext(null);
 
 const storageKey = 'gastoclaro.session';
 const listeners = new Set();

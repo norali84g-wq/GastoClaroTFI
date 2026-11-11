@@ -1,0 +1,241 @@
+.gc-ant-scene {
+  position: relative;
+  margin: var(--space) 0;
+}
+
+.gc-ant-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  color: var(--color-primary);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.gc-ant-scene figure {
+  margin: 0;
+}
+
+.gc-ant-pig {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.gc-ant-caption {
+  margin-top: 0.6rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.gc-ant-pause {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  min-width: 2.75rem;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.gc-ant-walker,
+.gc-ant-pig-watching,
+.gc-ant-pose-b,
+.gc-ant-jar-frame {
+  opacity: 0;
+}
+
+.gc-ant-jar {
+  isolation: isolate;
+}
+
+.gc-ant-jar-frame[data-final] {
+  opacity: 1;
+}
+
+.gc-ant-pose-a,
+.gc-ant-pose-b {
+  transform-box: fill-box;
+  transform-origin: right center;
+  transform: scaleX(0.82);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gc-ant-pig-watching {
+    opacity: 1;
+  }
+
+  .gc-ant-pig-worried,
+  .gc-ant-jar-frame[data-final],
+  .gc-ant-stack,
+  .gc-ant-caption {
+    opacity: 0;
+  }
+
+  .gc-ant-jar-frame {
+    mix-blend-mode: plus-lighter;
+  }
+
+  .gc-ant-jar-frame[data-initial] {
+    opacity: 1;
+  }
+
+  .gc-ant-playing .gc-ant-pig {
+    animation: gc-ant-worry 0.48s ease-in-out var(--first-departure) both;
+  }
+
+  .gc-ant-playing .gc-ant-pig-watching {
+    animation: gc-ant-hide 90ms var(--first-departure) both;
+  }
+
+  .gc-ant-playing .gc-ant-pig-worried {
+    animation: gc-ant-reveal 90ms var(--first-departure) both;
+  }
+
+  .gc-ant-playing .gc-ant-jar-frame {
+    animation:
+      var(--jar-enter, gc-ant-reveal) 450ms linear var(--jar-in) both,
+      var(--jar-exit, gc-ant-hide) 450ms linear var(--jar-out) forwards;
+  }
+
+  .gc-ant-jar-frame[data-initial] {
+    --jar-enter: none;
+  }
+
+  .gc-ant-jar-frame[data-final] {
+    --jar-exit: none;
+  }
+
+  .gc-ant-playing .gc-ant-walker {
+    animation: gc-ant-cross var(--walk-time) linear var(--ant-delay) both;
+  }
+
+  .gc-ant-playing .gc-ant-trot {
+    animation: gc-ant-trot var(--trot-time) linear var(--ant-delay) 18;
+  }
+
+  .gc-ant-playing .gc-ant-pose-a {
+    animation: gc-ant-legs-a var(--step-time) linear var(--ant-delay) 9;
+  }
+
+  .gc-ant-playing .gc-ant-pose-b {
+    animation: gc-ant-legs-b var(--step-time) linear var(--ant-delay) 9;
+  }
+
+  .gc-ant-playing .gc-ant-stack {
+    animation: gc-ant-drop var(--coin-drop-time) ease-out var(--coin-delay) both;
+  }
+
+  .gc-ant-playing .gc-ant-caption {
+    animation: gc-ant-reveal 0.3s var(--caption-delay) both;
+  }
+
+  .gc-ant-playing[data-paused] * {
+    animation-play-state: paused;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-ant-walker,
+  .gc-ant-pause {
+    display: none;
+  }
+}
+
+@keyframes gc-ant-hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes gc-ant-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gc-ant-worry {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  65% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes gc-ant-cross {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  4%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(300px);
+    opacity: 0;
+  }
+}
+
+@keyframes gc-ant-trot {
+  0%,
+  100% {
+    transform: translateY(1px);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes gc-ant-legs-a {
+  0%,
+  49%,
+  100% {
+    opacity: 1;
+  }
+  50%,
+  99% {
+    opacity: 0;
+  }
+}
+
+@keyframes gc-ant-legs-b {
+  0%,
+  49%,
+  100% {
+    opacity: 0;
+  }
+  50%,
+  99% {
+    opacity: 1;
+  }
+}
+
+@keyframes gc-ant-drop {
+  0% {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  58% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  76% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
