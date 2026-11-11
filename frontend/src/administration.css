@@ -1,0 +1,86 @@
+.administration-tabs {
+  margin-block: 1rem;
+}
+
+.administration-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+
+.administration-summary > .panel {
+  margin: 0;
+}
+
+.administration-summary h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+.administration-summary strong {
+  color: var(--color-primary);
+  font-size: 1.65rem;
+}
+
+.administration-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.administration-table th {
+  text-align: left;
+}
+
+.administration-badge {
+  display: inline-block;
+  margin-inline-start: 0.35rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 0.7rem;
+  background: var(--color-light);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.administration-badge.is-inactive {
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.administration-badge.is-pending {
+  border: 1px solid currentColor;
+}
+
+.administration-message.is-pending {
+  border-inline-start: 0.3rem solid var(--color-primary);
+}
+
+.administration-message-header,
+.administration-message dl {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.administration-message-header h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.administration-message dl > div {
+  min-width: 0;
+}
+
+.administration-message dt {
+  font-weight: 650;
+}
+
+.administration-message dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.administration-message-body {
+  white-space: pre-wrap;
+}

@@ -30,6 +30,7 @@ p {
 }
 button,
 input,
+textarea,
 select {
   font: inherit;
 }
@@ -86,6 +87,7 @@ button:disabled {
   font-weight: 600;
 }
 .field input,
+.field textarea,
 .field select {
   width: 100%;
   min-width: 0;

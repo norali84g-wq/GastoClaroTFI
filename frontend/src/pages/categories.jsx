@@ -1,6 +1,7 @@
 import { DeleteRecord, useDeleteRecord } from '../components/delete-record.jsx';
 import { Link } from '@tanstack/react-router';
 import { useContext, useState } from 'react';
+import { AdministrationTabs } from '../components/administration-tabs.jsx';
 import { CategoriaIcono } from '../components/categoria-icono.jsx';
 import { Status } from '../components/chanchito.jsx';
 import { DataState, Field, FormError } from '../components/common.jsx';
@@ -93,13 +94,17 @@ function CategoryBranch({
   collapsed,
   setCollapsed,
   askDelete,
+  onToggleActive,
 }) {
-  const { id, name, children } = node;
+  const { id, name, children, active } = node;
   const expanded = !collapsed.has(id);
   const label = (
     <>
       <CategoriaIcono nombre={name} id={id} size={root ? 40 : 28} />
       <strong>{name}</strong>
+      {active === false && (
+        <span className="administration-badge is-inactive">{text.categoryInactive}</span>
+      )}
     </>
   );
   function toggle() {
@@ -143,12 +148,22 @@ function CategoryBranch({
             </button>
             <button
               type="button"
-              className="movement-danger"
+              className="secondary"
               disabled={disabled}
-              onClick={() => askDelete(node, name)}
+              onClick={() => onToggleActive(node)}
             >
-              {text.remove}
+              {active === false ? text.activate : text.deactivate}
             </button>
+            {askDelete && (
+              <button
+                type="button"
+                className="movement-danger"
+                disabled={disabled}
+                onClick={() => askDelete(node, name)}
+              >
+                {text.remove}
+              </button>
+            )}
             {root && (
               <button
                 type="button"
@@ -175,6 +190,7 @@ function CategoryBranch({
               admin={admin}
               disabled={disabled}
               askDelete={askDelete}
+              onToggleActive={onToggleActive}
               setEditor={setEditor}
               collapsed={collapsed}
               setCollapsed={setCollapsed}
@@ -186,7 +202,7 @@ function CategoryBranch({
   );
 }
 
-export function Categories() {
+export function Categories({ allowDeletion = false }) {
   const { admin } = useContext(AccountContext);
   const { categories, categoryIcons } = useIconPreferences();
   const [editor, setEditor] = useState(null);
@@ -197,12 +213,21 @@ export function Categories() {
     setNotice(false);
     categories.reload();
   });
-  const disabled = Boolean(editor) || deletion.busy;
+  const activation = useAction();
+  const disabled = Boolean(editor) || deletion.busy || activation.busy;
+
+  function toggleActive(item) {
+    activation.run(async () => {
+      await api.updateCategory(item.id, { active: item.active === false });
+      categories.reload();
+    });
+  }
 
   return (
     <>
       <Link to="/consumos">{text.backToExpenses}</Link>
       <h1>{text.categories}</h1>
+      {admin && <AdministrationTabs current="categorias" />}
       {admin && (
         <button type="button" disabled={disabled} onClick={() => setEditor({})}>
           {text.newCategory}
@@ -222,7 +247,8 @@ export function Categories() {
         />
       )}
       {notice && <p role="status">{text.iconSavedLocally}</p>}
-      {admin && <DeleteRecord action={deletion} category />}
+      {admin && <FormError error={activation.error} />}
+      {admin && allowDeletion && <DeleteRecord action={deletion} category />}
       <DataState result={categories}>
         {(items) =>
           items.length ? (
@@ -234,7 +260,8 @@ export function Categories() {
                   root
                   admin={admin}
                   disabled={disabled}
-                  askDelete={deletion.ask}
+                  askDelete={allowDeletion ? deletion.ask : undefined}
+                  onToggleActive={toggleActive}
                   setEditor={setEditor}
                   collapsed={collapsed}
                   setCollapsed={setCollapsed}

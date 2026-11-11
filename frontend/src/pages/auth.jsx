@@ -2,7 +2,7 @@ import { Status } from '../components/chanchito.jsx';
 import { Link, Navigate } from '@tanstack/react-router';
 import { ApiError } from '../api/client.js';
 import { Brand, Icon } from '../components/brand.jsx';
-import { Field } from '../components/common.jsx';
+import { currentDate, Field } from '../components/common.jsx';
 import { displayError, useAction } from '../hooks/data.js';
 import { authenticate, useSession } from '../hooks/session.js';
 import { text } from '../texts.js';
@@ -61,7 +61,15 @@ export function Welcome() {
   );
 }
 
-const authFields = ['user', 'email', 'password', 'password_confirmation'];
+const loginFields = ['user', 'password'];
+const registerFields = [
+  ...loginFields,
+  'email',
+  'password_confirmation',
+  'first_name',
+  'last_name',
+  'birth_date',
+];
 
 export function AuthPage({ mode }) {
   const session = useSession();
@@ -70,12 +78,16 @@ export function AuthPage({ mode }) {
   const title = registering ? text.register : text.login;
   const buttonText = registering ? text.register : text.signIn;
   const busyText = registering ? text.saving : text.signingIn;
-  const generalError = error?.issues?.length
-    ? error.issues
-        .filter(({ field }) => !authFields.includes(field))
-        .map(({ message }) => message)
-        .join(' · ')
-    : error && displayError(error);
+  const fields = registering ? registerFields : loginFields;
+  const disabledAccount = !registering && error?.status === 403;
+  let generalError = error && displayError(error);
+  if (disabledAccount) generalError = error.issues?.[0]?.message || generalError;
+  else if (error?.issues?.length) {
+    generalError = error.issues
+      .filter(({ field }) => !fields.includes(field))
+      .map(({ message }) => message)
+      .join(' · ');
+  }
   if (session) return <Navigate to="/inicio" replace />;
 
   function submit(event) {
@@ -85,7 +97,18 @@ export function AuthPage({ mode }) {
       if (registering && values.password !== values.password_confirmation) {
         throw new ApiError(422, [{ field: 'password_confirmation', message: text.mismatch }]);
       }
-      if (registering && !values.user.trim()) delete values.user;
+      if (registering) {
+        if (!values.user.trim()) delete values.user;
+        values.first_name = values.first_name.trim();
+        values.last_name = values.last_name.trim();
+        const issues = [];
+        if (!values.first_name) issues.push({ field: 'first_name', message: text.requiredValue });
+        if (!values.last_name) issues.push({ field: 'last_name', message: text.requiredValue });
+        if (values.birth_date > currentDate()) {
+          issues.push({ field: 'birth_date', message: text.futureBirthDate });
+        }
+        if (issues.length) throw new ApiError(422, issues);
+      }
       await authenticate(mode, values);
     });
   }
@@ -96,11 +119,39 @@ export function AuthPage({ mode }) {
         <Brand />
         <h1>{title}</h1>
         <form onSubmit={submit}>
+          {generalError && <Status pose="error" message={generalError} />}
+          {registering && (
+            <>
+              <Field
+                label={text.firstName}
+                name="first_name"
+                autoComplete="given-name"
+                error={error}
+                required
+              />
+              <Field
+                label={text.lastName}
+                name="last_name"
+                autoComplete="family-name"
+                error={error}
+                required
+              />
+              <Field
+                label={text.birthDate}
+                name="birth_date"
+                type="date"
+                autoComplete="bday"
+                max={currentDate()}
+                error={error}
+                required
+              />
+            </>
+          )}
           <Field
             label={text.user}
             name="user"
             autoComplete="username"
-            error={error}
+            error={disabledAccount ? null : error}
             required={!registering}
           />
           {registering && (
@@ -119,7 +170,7 @@ export function AuthPage({ mode }) {
             name="password"
             autoComplete={registering ? 'new-password' : 'current-password'}
             minLength={registering ? 8 : undefined}
-            error={error}
+            error={disabledAccount ? null : error}
             required
           />
           {registering && (
@@ -132,7 +183,6 @@ export function AuthPage({ mode }) {
               required
             />
           )}
-          {generalError && <Status pose="error" message={generalError} />}
           {busy && <Status pose="cargando" message={busyText} />}
           <button disabled={busy}>{busy ? busyText : buttonText}</button>
         </form>

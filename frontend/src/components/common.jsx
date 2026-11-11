@@ -4,10 +4,12 @@ import { CategoryOptions } from './category-options.jsx';
 import { Chanchito, Status } from './chanchito.jsx';
 import { text } from '../texts.js';
 
-export function Field({ label, error, children, ...props }) {
+export function Field({ label, error, children, multiline = false, ...props }) {
   const id = useId();
   const { name } = props;
-  const issue = error?.issues?.find((item) => item.field === name);
+  const messages = error?.issues?.filter((item) => item.field === name).map((item) => item.message);
+  const issue = messages?.length > 0;
+  const Control = children ? 'select' : multiline ? 'textarea' : 'input';
   const attributes = {
     ...props,
     id,
@@ -18,10 +20,10 @@ export function Field({ label, error, children, ...props }) {
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      {children ? <select {...attributes}>{children}</select> : <input {...attributes} />}
+      <Control {...attributes}>{children}</Control>
       {issue && (
         <span id={`${id}-error`} className="field-error" role="alert">
-          {issue.message}
+          {messages.join(' · ')}
         </span>
       )}
     </div>
@@ -67,8 +69,13 @@ export function CategoryField({
   grouped = false,
   allowParents = false,
 }) {
-  const invalidParent =
-    grouped && !allowParents && categories.some((item) => item.parent_id === defaultValue);
+  const options = categories.filter(({ id, active }) => active !== false || id === defaultValue);
+  const unavailableParents = new Set(
+    grouped && !allowParents
+      ? categories.map(({ parent_id }) => parent_id).filter((id) => id != null)
+      : [],
+  );
+  const invalidParent = unavailableParents.has(defaultValue);
   return (
     <Field
       label={text.category}
@@ -79,11 +86,16 @@ export function CategoryField({
     >
       <option value="">{text.choose}</option>
       {grouped ? (
-        <CategoryOptions categories={categories} allowParents={allowParents} />
+        <CategoryOptions
+          categories={options}
+          allowParents={allowParents}
+          unavailableParents={unavailableParents}
+          markInactive
+        />
       ) : (
-        categories.map(({ id, name }) => (
+        options.map(({ id, name, active }) => (
           <option key={id} value={id}>
-            {name}
+            {active === false ? text.inactiveCategory(name) : name}
           </option>
         ))
       )}

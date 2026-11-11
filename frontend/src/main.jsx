@@ -8,13 +8,15 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertHeader } from './components/budget-alerts.jsx';
 import { Brand } from './components/brand.jsx';
 import { DesktopNavigation, MobileNavigation } from './components/navigation.jsx';
 import { DataState } from './components/common.jsx';
 import { useData } from './hooks/data.js';
-import { AccountContext, api, expireSession, logout, useSession } from './hooks/session.js';
+import { AccountContext, api, expireSession, useSession } from './hooks/session.js';
+import { Administration } from './pages/administration.jsx';
+import { Profile } from './pages/profile.jsx';
 import { AuthPage, Welcome } from './pages/auth.jsx';
 import { Budgets } from './pages/budgets.jsx';
 import { PaymentMethods } from './pages/payment-methods.jsx';
@@ -32,6 +34,8 @@ import './gastoclaro-home.css';
 import './movements.css';
 import './planning.css';
 import './part-four.css';
+import './profile.css';
+import './administration.css';
 
 function AppLayout() {
   return (
@@ -54,39 +58,9 @@ function AppLayout() {
   );
 }
 
-function Profile() {
-  const user = useContext(AccountContext);
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function signOut() {
-    setSigningOut(true);
-    try {
-      await logout();
-    } catch (error) {
-      if (error.status !== 401) window.alert(text.logoutFailed);
-    }
-  }
-
-  return (
-    <>
-      <h1>{text.profile}</h1>
-      <section className="panel">
-        <dl>
-          <dt>{text.user}</dt>
-          <dd>{user.user}</dd>
-          <dt>{text.email}</dt>
-          <dd>{user.email ?? text.noEmail}</dd>
-        </dl>
-        <button type="button" disabled={signingOut} onClick={signOut}>
-          {text.logout}
-        </button>
-      </section>
-    </>
-  );
-}
-
 function VerifySession({ expiresAt }) {
   const result = useData(api.me);
+  const [profile, setProfile] = useState(null);
   useEffect(() => {
     const timeout = setTimeout(expireSession, Math.max(0, Date.parse(expiresAt) - Date.now()));
     return () => clearTimeout(timeout);
@@ -94,7 +68,7 @@ function VerifySession({ expiresAt }) {
 
   if (!result.loading && !result.error) {
     return (
-      <AccountContext.Provider value={result.data}>
+      <AccountContext.Provider value={{ ...result.data, ...profile, setProfile }}>
         <IconPreferences>
           <AppLayout />
         </IconPreferences>
@@ -164,6 +138,13 @@ const newRecordRoute = (path, Page) => {
   });
   return entry;
 };
+const administrationRoute = createRoute({
+  path: '/administracion',
+  getParentRoute: () => protectedRoute,
+  validateSearch: (search) =>
+    ['usuarios', 'soporte'].includes(search.tab) ? { tab: search.tab } : {},
+  component: () => <Administration tab={administrationRoute.useSearch().tab} />,
+});
 const router = createRouter({
   routeTree: root.addChildren([
     route('/', Welcome),
@@ -175,6 +156,7 @@ const router = createRouter({
       newRecordRoute('/ingresos', Incomes),
       route('/categorias', Categories, protectedRoute),
       route('/perfil', Profile, protectedRoute),
+      administrationRoute,
       budgetRoute,
       route('/medios-de-pago', PaymentMethods, protectedRoute),
       route('/cuotas', Installments, protectedRoute),
