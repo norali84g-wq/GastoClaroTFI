@@ -85,6 +85,7 @@ export function AuthPage({ mode }) {
       if (registering && values.password !== values.password_confirmation) {
         throw new ApiError(422, [{ field: 'password_confirmation', message: text.mismatch }]);
       }
+      if (registering && !values.user.trim()) delete values.user;
       await authenticate(mode, values);
     });
   }
@@ -95,7 +96,13 @@ export function AuthPage({ mode }) {
         <Brand />
         <h1>{title}</h1>
         <form onSubmit={submit}>
-          <Field label={text.user} name="user" autoComplete="username" error={error} required />
+          <Field
+            label={text.user}
+            name="user"
+            autoComplete="username"
+            error={error}
+            required={!registering}
+          />
           {registering && (
             <Field
               label={text.email}

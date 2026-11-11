@@ -1,4 +1,4 @@
-const cacheName = 'gastoclaro-static-v4';
+const cacheName = 'gastoclaro-static-v5';
 const staticFiles = new Set([
   '/gastoclaro-hero.webp',
   '/chanchito/vacio.webp',
@@ -31,9 +31,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  const illustration = /^\/(chanchito|metas|categorias|tarjetas|iconos)\/[a-z-]+\.webp$/.test(
-    url.pathname,
-  );
+  const illustration =
+    /^\/(chanchito|metas|categorias|tarjetas|iconos|hormiga)\/[a-z-]+\.webp$/.test(url.pathname);
   const builtAsset = /^\/assets\/[^/]+\.(js|css)$/.test(url.pathname);
 
   if (
