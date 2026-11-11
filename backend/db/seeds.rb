@@ -197,6 +197,28 @@ unless Rails.env.production?
   crear_gasto.call(description: "Almuerzo con amigas", category: ocio, date: fecha.call(0, 18),
                    amount: 5_400, channel: :delivery)
 
+  # Gasto hormiga: compras chicas con sus productos, que no están en la lista de compras ni son fijas.
+  # Este mes son 6 productos (21.900 pesos); hace 1 mes, 3; hace 2 meses, 1; hace 3 meses, ninguno.
+  # Así la demo muestra la escena de las hormigas con distinta cantidad y el estado vacío.
+  crear_gasto.call(description: "Kiosco de la esquina", category: supermercado, date: fecha.call(0, 2),
+                   items: [ [ "Alfajor", 3, 500 ], [ "Gaseosa", 2, 1_150 ], [ "Snacks", 1, 1_100 ] ])
+  crear_gasto.call(description: "Café de la mañana", category: ocio, date: fecha.call(0, 6),
+                   items: [ [ "Café con medialunas", 2, 2_400 ] ])
+  crear_gasto.call(description: "Pedido de empanadas", category: ocio, date: fecha.call(0, 9),
+                   channel: :delivery, items: [ [ "Empanadas", 1, 9_200 ] ])
+  crear_gasto.call(description: "Heladería", category: ocio, date: fecha.call(0, 13),
+                   items: [ [ "Helado", 3, 1_000 ] ])
+
+  mes_1 = today.prev_month(1).strftime("%m/%Y")
+  crear_gasto.call(description: "Café de la mañana #{mes_1}", category: ocio, date: fecha.call(1, 4),
+                   items: [ [ "Café con medialunas", 3, 2_200 ] ])
+  crear_gasto.call(description: "Kiosco #{mes_1}", category: supermercado, date: fecha.call(1, 11),
+                   items: [ [ "Alfajor", 4, 450 ], [ "Gaseosa", 1, 1_050 ] ])
+
+  mes_2 = today.prev_month(2).strftime("%m/%Y")
+  crear_gasto.call(description: "Café de la mañana #{mes_2}", category: ocio, date: fecha.call(2, 7),
+                   items: [ [ "Café con medialunas", 2, 2_000 ] ])
+
   # Presupuestos: Transporte llega al 80 % y Ocio pasa el 100 %, así que la demo muestra las dos alertas.
   [
     [ today, transporte, 25_000 ],
