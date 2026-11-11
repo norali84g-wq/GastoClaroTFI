@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { Icon } from './brand.jsx';
+import { AccountContext } from '../hooks/session.js';
 import { text } from '../texts.js';
 
 const home = { label: text.home, icon: 'home', to: '/inicio' };
 const expenses = { label: text.expenses, icon: 'cart', to: '/consumos' };
 const goals = { label: text.savingsGoals, icon: 'goal', to: '/metas' };
 const profile = { label: text.profile, icon: 'settings', to: '/perfil' };
+const adminItems = [
+  { label: text.administration, icon: 'settings', to: '/administracion' },
+  { label: text.categories, icon: 'list', to: '/categorias' },
+];
 const groups = [
   [text.financeGroup, [{ label: text.incomes, icon: 'wallet', to: '/ingresos' }, expenses, goals]],
   [
@@ -41,6 +46,7 @@ function NavItem({ item, onClick }) {
 }
 
 export function DesktopNavigation() {
+  const { admin } = useContext(AccountContext);
   return (
     <nav className="desktop-navigation" aria-label={text.menu}>
       <NavItem item={home} />
@@ -52,12 +58,14 @@ export function DesktopNavigation() {
           ))}
         </div>
       ))}
+      {admin && adminItems.map((item) => <NavItem key={item.to} item={item} />)}
       <NavItem item={profile} />
     </nav>
   );
 }
 
 function MobileNavigationBar() {
+  const { admin } = useContext(AccountContext);
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   return (
@@ -104,6 +112,7 @@ function MobileNavigationBar() {
             .map((item) => (
               <NavItem key={item.label} item={item} onClick={close} />
             ))}
+          {admin && adminItems.map((item) => <NavItem key={item.to} item={item} onClick={close} />)}
           <NavItem item={profile} onClick={close} />
         </div>
       )}
