@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --test",
+    "test": "vitest run",
     "format": "prettier --write .",
     "hooks:install": "node scripts/install-hook.js"
   },
@@ -27,6 +27,7 @@
     "eslint-plugin-react": "7.37.5",
     "globals": "14.0.0",
     "prettier": "3.9.6",
-    "vite": "8.0.13"
+    "vite": "8.0.13",
+    "vitest": "4.1.7"
   }
 }

@@ -1,0 +1,126 @@
+.movement-filters,
+.movement-field-grid,
+.movement-item,
+.movement-items {
+  display: grid;
+  gap: 0.75rem;
+}
+.movement-filters {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: start;
+}
+.movement-field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.movement-records > li {
+  margin-block: 0.65rem;
+}
+.movement-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.movement-link:hover {
+  background: var(--color-light);
+  text-decoration: underline;
+}
+.movement-link small {
+  display: block;
+}
+.movement-detail h2 {
+  margin: 0;
+}
+.movement-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.75rem;
+}
+.movement-facts dt {
+  font-weight: 650;
+}
+.movement-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.movement-list > li + li {
+  border-top: 1px solid var(--color-border);
+}
+.movement-actions,
+.movement-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+.movement-detail > .movement-actions {
+  justify-content: space-between;
+}
+.movement-total {
+  margin-block: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: var(--color-light);
+  font-weight: 650;
+}
+.movement-amount {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  overflow-wrap: anywhere;
+}
+.movement-editor {
+  max-width: 38rem;
+}
+.movement-editor form {
+  max-width: none;
+}
+.movement-editor .field:has(.movement-checkbox) {
+  grid-template-columns: auto 1fr;
+  justify-items: start;
+  align-items: center;
+}
+.movement-checkbox {
+  order: -1;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+.movement-editor .field input.movement-checkbox {
+  width: 1.35rem;
+  min-height: 2.75rem;
+}
+.movement-editor .field:has(.movement-checkbox) label {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+}
+.movement-editor .field:has(.movement-checkbox) .field-error {
+  grid-column: 1 / -1;
+}
+.movement-item {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+}
+.movement-item legend {
+  font-weight: 650;
+}
+.movement-items > button {
+  justify-self: start;
+}
+.movement-danger {
+  background: #fff0eb;
+  border-color: #852c25;
+  color: #852c25;
+}
+@media (max-width: 30rem) {
+  .movement-link {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .movement-link > strong {
+    grid-column: 2;
+  }
+}

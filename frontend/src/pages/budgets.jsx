@@ -1,4 +1,7 @@
-import { Link } from '@tanstack/react-router';
+import { DeleteRecord, useDeleteRecord } from '../components/delete-record.jsx';
+import { CategoriaIcono } from '../components/categoria-icono.jsx';
+import { BudgetAlert, useMonthAlerts } from '../components/budget-alerts.jsx';
+import { Status } from '../components/chanchito.jsx';
 import { useCallback, useState } from 'react';
 import {
   CategoryField,
@@ -8,155 +11,152 @@ import {
   FormError,
   formatMoney,
 } from '../components/common.jsx';
+import { EditorActions, MonthPicker, Progress, RecordActions } from '../components/planning.jsx';
 import { useAction, useData } from '../hooks/data.js';
 import { api } from '../hooks/session.js';
 import { text } from '../texts.js';
 
-function BudgetList({ items }) {
-  if (!items.length) return <p>{text.empty}</p>;
-  return (
-    <ul className="records">
-      {items.map((item) => (
-        <li className="panel" key={item.id}>
-          <h3>{item.category.name}</h3>
-          <p>
-            {text.spent}: {formatMoney(item.spent)} / {formatMoney(item.amount)}
-          </p>
-          <p>
-            {text.available}: {formatMoney(item.remaining)} · {item.percentage}%
-          </p>
-          <progress
-            aria-label={item.category.name}
-            value={Math.max(0, Math.min(item.percentage, 100))}
-            max="100"
-          />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function useBudgets(period) {
-  const load = useCallback((signal) => api.budgets(period, signal), [period]);
-  return useData(load);
-}
-
-export function BudgetSummary({ period }) {
-  const result = useBudgets(period);
-  return (
-    <section className="panel dashboard-budgets">
-      <h2>{text.budgets}</h2>
-      <DataState result={result}>
-        {(items) => (items.length ? <BudgetList items={items} /> : <p>{text.noMonthlyBudgets}</p>)}
-      </DataState>
-      <Link className="button secondary" to="/presupuestos">
-        {text.viewBudgets}
-      </Link>
-    </section>
-  );
-}
-
-function BudgetForm({ categories, period, onSaved }) {
+function BudgetForm({ categories, period, item, onSaved, onCancel }) {
   const { busy, error, run } = useAction();
 
   function submit(event) {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const values = new FormData(event.currentTarget);
+    const body = {
+      period: values.get('period'),
+      category_id: Number(values.get('category_id')),
+      amount: Number(values.get('amount')),
+    };
     run(async () => {
-      await api.createBudget({
-        period,
-        category_id: Number(values.category_id),
-        amount: Number(values.amount),
-      });
-      onSaved();
+      const saved = item ? await api.updateBudget(item.id, body) : await api.createBudget(body);
+      onSaved(saved);
     });
   }
 
   return (
-    <form onSubmit={submit}>
-      <CategoryField categories={categories} error={error} />
-      <Field
-        label={text.amount}
-        name="amount"
-        type="number"
-        min="0.01"
-        step="0.01"
-        error={error}
-        required
-      />
-      <FormError error={error} />
-      <button disabled={busy || !categories.length}>{busy ? text.saving : text.save}</button>
-    </form>
+    <section className="panel movement-editor">
+      <h2>{item ? text.editBudget : text.newBudget}</h2>
+      <form onSubmit={submit}>
+        <Field
+          label={text.period}
+          name="period"
+          type="month"
+          defaultValue={item?.period ?? period}
+          error={error}
+          required
+        />
+        <CategoryField
+          grouped
+          allowParents
+          categories={categories}
+          defaultValue={item?.category.id}
+          error={error}
+        />
+        <Field
+          label={text.amount}
+          name="amount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          defaultValue={item?.amount}
+          error={error}
+          required
+        />
+        <FormError retrySubmit error={error} fieldNames={['period', 'category_id', 'amount']} />
+        <EditorActions busy={busy} blocked={!categories.length} onCancel={onCancel} />
+      </form>
+    </section>
   );
 }
 
-export function Budgets() {
-  const [period, setPeriod] = useState(currentPeriod);
-  const [showForm, setShowForm] = useState(false);
-  const loadAlerts = useCallback((signal) => api.budgetAlerts(period, signal), [period]);
-  const result = useBudgets(period);
-  const alerts = useData(loadAlerts);
+export function Budgets({ initialPeriod }) {
+  const [period, setPeriod] = useState(() => initialPeriod ?? currentPeriod());
+  const [editor, setEditor] = useState(null);
+  const loadBudgets = useCallback((signal) => api.budgets(period, signal), [period]);
+  const budgets = useData(loadBudgets);
+  const alerts = useMonthAlerts(period);
   const categories = useData(api.categories);
+  const deletion = useDeleteRecord(api.removeBudget, refresh);
+  const disabled = Boolean(editor) || deletion.busy;
+
+  function refresh() {
+    budgets.reload();
+    alerts.reload();
+  }
 
   return (
     <>
       <h1>{text.budgets}</h1>
       <div className="toolbar">
-        <Field
-          label={text.period}
-          type="month"
-          value={period}
-          onChange={(event) => setPeriod(event.target.value || currentPeriod())}
-        />
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? text.cancel : text.newBudget}
+        <MonthPicker period={period} onChange={setPeriod} disabled={disabled} />
+        <button type="button" disabled={disabled} onClick={() => setEditor({})}>
+          {text.newBudget}
         </button>
       </div>
-      {showForm && (
-        <section className="panel">
-          <h2>{text.newBudget}</h2>
-          <DataState result={categories}>
-            {(items) => (
-              <BudgetForm
-                categories={items}
-                period={period}
-                onSaved={() => {
-                  setShowForm(false);
-                  result.reload();
-                  alerts.reload();
-                }}
-              />
-            )}
-          </DataState>
-        </section>
-      )}
-      <DataState result={result}>{(items) => <BudgetList items={items} />}</DataState>
-      <section>
-        <h2>{text.alerts}</h2>
-        <DataState result={alerts}>
-          {(items) =>
-            items.length ? (
-              <ul className="records">
-                {items.map((alert) => (
-                  <li className="panel" key={alert.id}>
-                    <strong>{alert.budget.category.name}</strong>
-                    <p>
-                      {text.threshold}: {alert.threshold_percentage}%
-                    </p>
-                    {alert.financial_tip?.content && (
-                      <p>
-                        <strong>{text.financialTip}</strong> · {alert.financial_tip.content}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>{text.noAlerts}</p>
-            )
-          }
+      {editor && (
+        <DataState result={categories}>
+          {(items) => (
+            <BudgetForm
+              key={editor.item?.id ?? 'new'}
+              categories={items}
+              period={period}
+              item={editor.item}
+              onCancel={() => setEditor(null)}
+              onSaved={(saved) => {
+                setEditor(null);
+                setPeriod(saved.period);
+                refresh();
+              }}
+            />
+          )}
         </DataState>
-      </section>
+      )}
+      {editor && (categories.error || categories.loading) && (
+        <button className="secondary" type="button" onClick={() => setEditor(null)}>
+          {text.cancel}
+        </button>
+      )}
+      <DeleteRecord action={deletion} />
+      <DataState result={budgets}>
+        {(items) =>
+          items.length ? (
+            <ul className="records planning-grid">
+              {items.map((item) => (
+                <li className="panel planning-card" key={item.id}>
+                  <div className="gc-category-heading">
+                    <CategoriaIcono nombre={item.category.name} id={item.category.id} size={44} />
+                    <h2>{item.category.name}</h2>
+                  </div>
+                  <p>
+                    {text.spent} · {formatMoney(item.spent)} / {formatMoney(item.amount)}
+                  </p>
+                  <p>
+                    {text.available} · {formatMoney(item.remaining)}
+                  </p>
+                  <Progress
+                    label={text.budgetProgress(item.category.name)}
+                    percentage={item.percentage}
+                  />
+                  <DataState result={alerts}>
+                    {(records) =>
+                      records
+                        .filter((alert) => alert.budget.id === item.id)
+                        .map((alert) => <BudgetAlert alert={alert} key={alert.id} />)
+                    }
+                  </DataState>
+                  <RecordActions
+                    disabled={disabled}
+                    onEdit={() => setEditor({ item })}
+                    onRemove={() => deletion.ask(item, item.category.name)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Status message={text.noMonthlyBudgets} />
+          )
+        }
+      </DataState>
     </>
   );
 }
