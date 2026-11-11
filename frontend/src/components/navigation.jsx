@@ -8,10 +8,7 @@ const home = { label: text.home, icon: 'home', to: '/inicio' };
 const expenses = { label: text.expenses, icon: 'cart', to: '/consumos' };
 const goals = { label: text.savingsGoals, icon: 'goal', to: '/metas' };
 const profile = { label: text.profile, icon: 'settings', to: '/perfil' };
-const adminItems = [
-  { label: text.administration, icon: 'settings', to: '/administracion' },
-  { label: text.categories, icon: 'list', to: '/categorias' },
-];
+const administration = { label: text.administration, icon: 'settings', to: '/administracion' };
 const groups = [
   [text.financeGroup, [{ label: text.incomes, icon: 'wallet', to: '/ingresos' }, expenses, goals]],
   [
@@ -20,6 +17,7 @@ const groups = [
       { label: text.paymentAndInstallments, icon: 'card', to: '/medios-de-pago' },
       { label: text.budgets, icon: 'calendar', to: '/presupuestos' },
       { label: text.shoppingList, icon: 'cart', to: '/lista-de-compras' },
+      { label: text.categories, icon: 'list', to: '/categorias', adminOnly: true },
     ],
   ],
   [
@@ -30,6 +28,9 @@ const groups = [
     ],
   ],
 ];
+
+const groupsFor = (admin) =>
+  groups.map(([title, items]) => [title, items.filter((item) => admin || !item.adminOnly)]);
 
 function NavItem({ item, onClick }) {
   const label = (
@@ -50,7 +51,7 @@ export function DesktopNavigation() {
   return (
     <nav className="desktop-navigation" aria-label={text.menu}>
       <NavItem item={home} />
-      {groups.map(([title, items]) => (
+      {groupsFor(admin).map(([title, items]) => (
         <div className="nav-group" key={title}>
           <p>{title}</p>
           {items.map((item) => (
@@ -58,7 +59,7 @@ export function DesktopNavigation() {
           ))}
         </div>
       ))}
-      {admin && adminItems.map((item) => <NavItem key={item.to} item={item} />)}
+      {admin && <NavItem item={administration} />}
       <NavItem item={profile} />
     </nav>
   );
@@ -106,13 +107,13 @@ function MobileNavigationBar() {
       </div>
       {open && (
         <div className="mobile-more" id="mobile-more">
-          {groups
+          {groupsFor(admin)
             .flatMap(([, items]) => items)
             .filter((item) => item !== expenses && item !== goals)
             .map((item) => (
               <NavItem key={item.label} item={item} onClick={close} />
             ))}
-          {admin && adminItems.map((item) => <NavItem key={item.to} item={item} onClick={close} />)}
+          {admin && <NavItem item={administration} onClick={close} />}
           <NavItem item={profile} onClick={close} />
         </div>
       )}
