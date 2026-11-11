@@ -2,13 +2,28 @@ family_group = FamilyGroup.find_or_create_by!(name: "Familia Gorosito") do |fg|
   fg.savings_percentage = 10
 end
 
-User.find_or_create_by!(user: "admin") do |u|
-  u.password = "admin1234"
-  u.family_group = family_group
-  u.admin = true
-end
+# Cuenta de administración. En desarrollo y pruebas usa la contraseña de demostración. En producción
+# no hay contraseña por defecto: solo se crea si se define ADMIN_PASSWORD, y nunca se imprime.
+admin_password = ENV["ADMIN_PASSWORD"].presence
+admin_password ||= "admin1234" unless Rails.env.production?
 
-puts "Admin creado -> usuario: admin / contraseña: admin1234"
+if admin_password
+  User.find_or_create_by!(user: "admin") do |u|
+    u.password = admin_password
+    u.family_group = family_group
+    u.admin = true
+  end
+
+  if Rails.env.production?
+    puts "Admin creado -> usuario: admin"
+  elsif ENV["ADMIN_PASSWORD"].blank?
+    puts "Admin creado -> usuario: admin / contraseña: admin1234"
+  else
+    puts "Admin creado -> usuario: admin / contraseña: la de ADMIN_PASSWORD"
+  end
+else
+  puts "Admin no creado: definí ADMIN_PASSWORD para crearlo en producción."
+end
 
 # Categorías de ejemplo (las del contrato de la API, docs/api/api.md).
 supermercado = Category.find_or_create_by!(name: "Supermercado")
