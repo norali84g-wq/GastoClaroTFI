@@ -79,7 +79,13 @@ Rails.application.routes.draw do
       patch "expenses/:id", to: "expenses#update"
       delete "expenses/:id", to: "expenses#destroy"
       get "me", to: "current_user#show"
+      patch "me", to: "current_user#update"
       get "users", to: "users#index"
+      get "users/stats", to: "users#stats"
+      patch "users/:id", to: "users#update"
+      post "support_messages", to: "support_messages#create"
+      get "support_messages", to: "support_messages#index"
+      patch "support_messages/:id", to: "support_messages#update"
     end
   end
 end

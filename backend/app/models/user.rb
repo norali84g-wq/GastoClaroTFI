@@ -8,15 +8,19 @@ class User < ApplicationRecord
   has_many :incomes, dependent: :destroy
   has_many :budgets, dependent: :destroy
   has_many :payment_methods, dependent: :destroy
+  has_many :support_messages, dependent: :destroy
 
   normalizes :user, with: ->(value) { value.to_s.strip.downcase }
   # Un email vacío se guarda como NULL: el índice único de MySQL acepta varios NULL pero no varios ''.
   normalizes :email, with: ->(email) { email.strip.downcase.presence }
 
+  # El DNI se guarda solo con dígitos: se aceptan puntos y espacios al escribirlo (12.345.678).
+  normalizes :dni, with: ->(value) { value.to_s.gsub(/[.\s]/, "").presence }
   normalizes :first_name, :last_name, with: ->(value) { value.to_s.strip.squish.presence }
 
   validates :user, presence: true, uniqueness: true
   validates :first_name, :last_name, length: { maximum: 60 }, allow_nil: true
+  validates :dni, format: { with: /\A\d{7,8}\z/, message: "debe tener 7 u 8 dígitos" }, allow_nil: true
   validate :birth_date_in_the_past
   validate :user_is_not_another_persons_email, if: :will_save_change_to_user?
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: true, allow_blank: true

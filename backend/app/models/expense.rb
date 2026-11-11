@@ -15,6 +15,7 @@ class Expense < ApplicationRecord
   scope :variable, -> { where(is_fixed: false) }
 
   validates :amount, numericality: { greater_than: 0 }
+  validate :category_is_active, on: :create
   validates :date, presence: true
 
   before_validation :set_family_group_from_user
@@ -35,5 +36,10 @@ class Expense < ApplicationRecord
   def set_amount_from_items
     items_total = expense_items.reject(&:marked_for_destruction?).sum { |item| (item.quantity || 0) * (item.unit_price || 0) }
     self.amount = items_total if items_total > 0
+  end
+
+  # Una categoría desactivada no se usa para gastos nuevos (los que ya tiene se conservan).
+  def category_is_active
+    errors.add(:category, "está desactivada") if category && !category.active?
   end
 end

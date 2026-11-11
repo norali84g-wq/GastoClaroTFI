@@ -3,7 +3,9 @@ class Api::V1::SessionsController < Api::V1::BaseController
 
   def create
     user = authenticate(params[:user].to_s, params[:password].to_s)
-    if user
+    if user && !user.active?
+      render_error(api_t("account_disabled"), status: :forbidden)
+    elsif user
       render json: SessionSerializer.call(user)
     else
       render_error(api_t("invalid_credentials"), status: :unauthorized)

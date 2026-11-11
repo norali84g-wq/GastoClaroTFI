@@ -57,7 +57,9 @@ tags:
   - name: Gastos fijos
     description: Lo planificado de cada mes, por categoría.
   - name: Usuarios
-    description: Listado de usuarios (solo administrador).
+    description: Listado y cantidad de usuarios (solo administrador).
+  - name: Soporte
+    description: Consultas que los usuarios le mandan al equipo desde el perfil.
 
 paths:
   /login:
@@ -145,6 +147,33 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+    patch:
+      tags: [Autenticación]
+      summary: Editar mis datos personales
+      description: Edita nombre, apellido, fecha de nacimiento (no futura) y DNI (7 u 8 dígitos). El mail, el usuario y el rol no se cambian desde acá.
+      operationId: updateCurrentUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name: { type: string, maxLength: 60, example: Norali }
+                last_name: { type: string, maxLength: 60, example: Gómez }
+                birth_date: { type: string, format: date, example: "1990-05-20" }
+                dni: { type: string, nullable: true, description: "7 u 8 dígitos; vacío lo borra.", example: "12345678" }
+      responses:
+        "200":
+          description: El usuario actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
   /dashboard:
     get:
@@ -1326,11 +1355,145 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
+                  $ref: "#/components/schemas/AdminUser"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /users/{id}:
+    patch:
+      tags: [Usuarios]
+      summary: Activar o desactivar una cuenta
+      description: Solo administrador. Desactivar no borra datos; la persona no puede entrar hasta que se reactive. El admin no puede desactivar su propia cuenta.
+      operationId: updateUser
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active: { type: boolean, example: false }
+      responses:
+        "200":
+          description: El usuario actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /users/stats:
+    get:
+      tags: [Usuarios]
+      summary: Cantidad de usuarios
+      description: Solo administrador.
+      operationId: getUsersStats
+      responses:
+        "200":
+          description: Totales de usuarios.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, admins, new_last_30_days]
+                properties:
+                  total: { type: integer, example: 12 }
+                  active: { type: integer, description: Usuarios con la cuenta activa., example: 11 }
+                  admins: { type: integer, example: 1 }
+                  new_last_30_days: { type: integer, description: Usuarios registrados en los últimos 30 días., example: 4 }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /support_messages:
+    get:
+      tags: [Soporte]
+      summary: Listar consultas de soporte
+      description: Solo administrador. Del más nuevo al más viejo.
+      operationId: listSupportMessages
+      responses:
+        "200":
+          description: Lista de consultas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Soporte]
+      summary: Mandar una consulta al equipo
+      description: Se guarda y, si el servidor tiene `SUPPORT_EMAIL`, se avisa por mail al equipo. Máximo 5 por hora por usuario.
+      operationId: createSupportMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, message]
+              properties:
+                subject: { type: string, maxLength: 120, example: No me carga el gasto }
+                message: { type: string, maxLength: 2000, example: Da error al guardar. }
+      responses:
+        "201":
+          description: Consulta creada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /support_messages/{id}:
+    patch:
+      tags: [Soporte]
+      summary: Marcar una consulta como atendida
+      description: Solo administrador. `attended=false` la vuelve a pendiente.
+      operationId: updateSupportMessage
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attended]
+              properties:
+                attended: { type: boolean, example: true }
+      responses:
+        "200":
+          description: La consulta actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   securitySchemes:
@@ -1522,6 +1685,56 @@ components:
           type: boolean
           description: Sirve solo para decidir qué mostrar; los permisos los controla siempre la API.
           example: false
+        first_name:
+          type: string
+          nullable: true
+          example: Norali
+        last_name:
+          type: string
+          nullable: true
+          example: Gómez
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          example: "1990-05-20"
+        dni:
+          type: string
+          nullable: true
+          description: Solo dígitos, 7 u 8. Opcional.
+          example: "12345678"
+        active:
+          type: boolean
+          description: "`false` si el admin desactivó la cuenta."
+          example: true
+    AdminUser:
+      type: object
+      description: Lo que el administrador ve de cada usuario. No incluye DNI, fecha de nacimiento ni montos.
+      required: [id, user, admin, active, created_at, expenses_count, support_messages_count, pending_support_messages_count]
+      properties:
+        id: { type: integer, example: 5 }
+        user: { type: string, example: prueba1 }
+        email: { type: string, nullable: true, example: prueba1@example.com }
+        admin: { type: boolean, example: false }
+        active: { type: boolean, example: true }
+        first_name: { type: string, nullable: true, example: Norali }
+        last_name: { type: string, nullable: true, example: Gómez }
+        created_at: { type: string, format: date-time, example: "2026-11-01T12:00:00Z" }
+        expenses_count: { type: integer, example: 14 }
+        last_expense_on: { type: string, format: date, nullable: true, example: "2026-11-10" }
+        support_messages_count: { type: integer, example: 2 }
+        pending_support_messages_count: { type: integer, example: 1 }
+    SupportMessage:
+      type: object
+      required: [id, subject, message, attended, created_at, user]
+      properties:
+        id: { type: integer, readOnly: true, example: 1 }
+        subject: { type: string, example: No me carga el gasto }
+        message: { type: string, example: Da error al guardar. }
+        attended: { type: boolean, example: false }
+        created_at: { type: string, format: date-time, example: "2026-11-11T22:10:00Z" }
+        user: { type: string, example: prueba1 }
+        email: { type: string, nullable: true, example: prueba1@example.com }
 
     # --- Dashboard, ahorro y estadísticas ---
     Dashboard:
@@ -1850,6 +2063,10 @@ components:
           type: boolean
           nullable: true
           description: "`null` si no se indicó."
+        active:
+          type: boolean
+          description: "`false` si el admin la desactivó: no admite gastos nuevos, pero conserva el historial."
+          example: true
     CategoryInput:
       type: object
       required: [name]
@@ -1875,6 +2092,10 @@ components:
           type: integer
           description: Tiene que ser una categoría que exista.
           example: 1
+        active:
+          type: boolean
+          description: "`false` la desactiva (no admite gastos nuevos, conserva el historial); `true` la reactiva."
+          example: false
       example:
         name: Supermercado
     CategoryComparison:
