@@ -18,9 +18,14 @@ class Api::V1::SavingsGoalsController < Api::V1::BaseController
   end
 
   def update
-    @savings_goal.image.purge if remove_image?
-
     if @savings_goal.update(savings_goal_params)
+      # La imagen se borra recién cuando el guardado salió bien: si la actualización falla (422), la
+      # meta conserva su foto. Si en el mismo pedido llega una imagen nueva, esa es la que queda.
+      if remove_image? && params[:image].blank?
+        @savings_goal.image.purge
+        @savings_goal.reload
+      end
+
       render json: savings_goal_json(@savings_goal)
     else
       render_record_errors(@savings_goal)

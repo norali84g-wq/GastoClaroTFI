@@ -195,4 +195,24 @@ class Api::V1::SavingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_nil response.parsed_body["image_url"]
     assert_not @meta.reload.image.attached?
   end
+
+  test "si la actualizacion falla, la meta conserva su imagen aunque se pida quitarla" do
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user), params: { image: imagen_png }
+    assert @meta.reload.image.attached?
+
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user),
+          params: { name: "", remove_image: "true" }
+
+    assert_response :unprocessable_entity
+    assert @meta.reload.image.attached?
+  end
+
+  test "si se pide quitar la imagen y se manda una nueva, queda la nueva" do
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user), params: { image: imagen_png }
+    patch "/api/v1/savings_goals/#{@meta.id}", headers: headers_for(@user),
+          params: { image: imagen_png("otra.png"), remove_image: "true" }
+
+    assert_response :ok
+    assert @meta.reload.image.attached?
+  end
 end
