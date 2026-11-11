@@ -18,6 +18,7 @@ La base rechaza por sí sola los datos inválidos, además de las validaciones d
 |-------|---------|
 | `expenses`, `incomes`, `budgets` | `amount > 0` |
 | `expense_items` | `quantity > 0` y `unit_price >= 0` |
+| `users` | `dni` vacío o de 7 u 8 dígitos |
 | `installment_purchases` | `total_amount > 0`, `installments_count > 0` e `interest_rate` entre 0 y 100 |
 | `installments` | `amount >= 0` |
 | `payment_methods` | `monthly_fee >= 0` |

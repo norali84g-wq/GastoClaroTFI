@@ -1,0 +1,4 @@
+<p>Nueva consulta de soporte en GastoClaro.</p>
+<p><strong>De:</strong> <%= @sender.user %> <%= "(#{@sender.email})" if @sender.email.present? %><br>
+<strong>Asunto:</strong> <%= @support_message.subject %></p>
+<p><%= simple_format(@support_message.message) %></p>

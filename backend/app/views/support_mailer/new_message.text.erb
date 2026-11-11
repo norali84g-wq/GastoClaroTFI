@@ -1,0 +1,6 @@
+Nueva consulta de soporte en GastoClaro.
+
+De: <%= @sender.user %> <%= "(#{@sender.email})" if @sender.email.present? %>
+Asunto: <%= @support_message.subject %>
+
+<%= @support_message.message %>

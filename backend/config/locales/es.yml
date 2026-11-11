@@ -5,6 +5,8 @@ es:
       forbidden: "Acceso denegado"
       not_found: "No encontrado"
       invalid_credentials: "Usuario o contraseña incorrectos"
+      account_disabled: "Tu cuenta está desactivada. Escribile al equipo de soporte."
+      cannot_disable_self: "No podés desactivar tu propia cuenta"
       invalid_period: "no es válido"
       invalid_year: "no es válido"
       invalid_month: "no es válido"

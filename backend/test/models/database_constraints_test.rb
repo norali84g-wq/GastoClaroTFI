@@ -20,6 +20,12 @@ class DatabaseConstraintsTest < ActiveSupport::TestCase
     assert_rejected_by_database { expense.update_columns(amount: -5) }
   end
 
+  test "la base rechaza un DNI que no tiene 7 u 8 dígitos" do
+    assert_rejected_by_database { @user.update_columns(dni: "123") }
+    assert_rejected_by_database { @user.update_columns(dni: "ab345678") }
+    assert_nothing_raised { @user.update_columns(dni: "12345678") }
+  end
+
   test "la base rechaza un ingreso con monto cero o negativo" do
     income = Income.create!(user: @user, amount: 100, date: Date.current)
 

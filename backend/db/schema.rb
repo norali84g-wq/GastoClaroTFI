@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_130000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -71,6 +71,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.datetime "updated_at", null: false
     t.boolean "tracks_installments"
     t.string "icon"
+    t.boolean "active", default: true, null: false
     t.index ["parent_id"], name: "index_categories_on_parent_id"
   end
 
@@ -222,6 +223,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.check_constraint "`estimated_unit_price` >= 0", name: "chk_shopping_list_items_price_not_negative"
   end
 
+  create_table "support_messages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "subject", limit: 120, null: false
+    t.text "message", null: false
+    t.boolean "attended", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "created_at"], name: "index_support_messages_on_user_and_created_at"
+    t.index ["user_id"], name: "index_support_messages_on_user_id"
+  end
+
   create_table "users", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "user", null: false
     t.string "password_digest", null: false
@@ -234,9 +246,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
     t.string "first_name"
     t.string "last_name"
     t.date "birth_date"
+    t.string "dni", limit: 8
+    t.boolean "active", default: true, null: false
     t.index ["email"], name: "index_users_on_email_unique", unique: true
     t.index ["family_group_id"], name: "index_users_on_family_group_id"
     t.index ["user"], name: "index_users_on_user", unique: true
+    t.check_constraint "`dni` IS NULL OR `dni` REGEXP '^[0-9]{7,8}$'", name: "chk_users_dni_format"
   end
 
   create_table "vendors", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -270,5 +285,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_120000) do
   add_foreign_key "savings_goals", "family_groups"
   add_foreign_key "shopping_list_items", "categories"
   add_foreign_key "shopping_list_items", "family_groups"
+  add_foreign_key "support_messages", "users"
   add_foreign_key "users", "family_groups"
 end

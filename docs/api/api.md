@@ -99,6 +99,12 @@ El `404` de cualquier endpoint con `:id` responde:
 | DELETE | `/logout` | Sí | cualquier usuario | existe |
 | POST | `/register` | No | — | existe |
 | GET | `/me` | Sí | cualquier usuario | existe |
+| PATCH | `/me` | Sí | cualquier usuario | existe |
+| POST | `/support_messages` | Sí | cualquier usuario | existe |
+| GET | `/support_messages` | Sí | solo admin | existe |
+| PATCH | `/support_messages/:id` | Sí | solo admin | existe |
+| GET | `/users/stats` | Sí | solo admin | existe |
+| PATCH | `/users/:id` | Sí | solo admin | existe |
 | GET | `/dashboard` | Sí | cualquier usuario | existe |
 | GET | `/savings` | Sí | cualquier usuario | existe |
 | GET | `/categories` | Sí | cualquier usuario | existe |
@@ -161,7 +167,9 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `admin` | boolean | No | `true` si es administrador. Sirve solo para decidir qué mostrar; los permisos los controla siempre la API |
 | `first_name` | string | **Sí** | nombre. `null` en los usuarios que no lo cargaron (admin, demo) |
 | `last_name` | string | **Sí** | apellido |
-| `birth_date` | string `YYYY-MM-DD` | **Sí** | fecha de nacimiento |
+| `birth_date` | string `YYYY-MM-DD` | **Sí** | fecha de nacimiento (nunca futura) |
+| `dni` | string | **Sí** | DNI, solo dígitos (7 u 8). Opcional |
+| `active` | boolean | No | `false` si el admin desactivó la cuenta (no puede entrar; sus datos se conservan) |
 
 ### Categoría
 
@@ -172,6 +180,7 @@ Cada recurso se define una sola vez acá; los endpoints lo referencian por su no
 | `parent_id` | integer | **Sí** | id de la categoría padre; `null` si es una categoría principal |
 | `tracks_installments` | boolean | **Sí** | `null` si no se indicó |
 | `icon` | string | **Sí** | clave del ícono que el front muestra (minúsculas, números, `-` y `_`, hasta 40 caracteres). `null` si no se eligió: el front usa uno según el nombre. Solo el admin lo puede cambiar, igual que el resto de la categoría |
+| `active` | boolean | No | `false` si el admin la desactivó: no admite gastos nuevos (`422` en `category_id`), pero conserva su historial |
 
 ### Gasto
 
@@ -355,6 +364,21 @@ curl http://localhost:3000/api/v1/me -H "Authorization: Bearer <TOKEN>"
 
 ```json
 { "id": 5, "user": "prueba1", "email": "prueba1@example.com", "admin": false }
+```
+
+### `PATCH /me`
+
+Protegido. Edita los datos personales del usuario del token. Campos (todos opcionales): `first_name`, `last_name`, `birth_date` (`YYYY-MM-DD`, no puede ser futura) y `dni` (7 u 8 dígitos; se aceptan puntos, `12.345.678`; vacío lo borra). El mail, el nombre de usuario y el rol **no** se cambian desde acá.
+
+```bash
+curl -X PATCH http://localhost:3000/api/v1/me -H "Authorization: Bearer <TOKEN>" \
+  -d "first_name=Norali" -d "last_name=Gómez" -d "birth_date=1990-05-20" -d "dni=12345678"
+```
+
+`200`: el usuario actualizado (forma **Usuario**). Con datos inválidos, `422`:
+
+```json
+{ "errors": [ { "field": "dni", "message": "debe tener 7 u 8 dígitos" } ] }
 ```
 
 ---
@@ -611,7 +635,7 @@ curl -X POST http://localhost:3000/api/v1/categories \
 
 ### `PATCH /categories/:id`
 
-Protegido, **solo admin**. Acepta los mismos campos y reglas que `POST`, todos opcionales. Una categoría no puede ser su propio padre ni colgar de una de sus subcategorías (`422` en `parent_id`). `404` si no existe. 
+Protegido, **solo admin**. Acepta los mismos campos y reglas que `POST`, todos opcionales, y además `active` (`false` desactiva la categoría sin perder datos; `true` la reactiva). Una categoría no puede ser su propio padre ni colgar de una de sus subcategorías (`422` en `parent_id`). `404` si no existe. 
 ### `DELETE /categories/:id`
 
 Protegido, **solo admin**. Borra una categoría **sin uso**.
@@ -1462,11 +1486,16 @@ Protegido, **solo admin**. Lista los usuarios. No devuelve contraseñas ni token
 curl http://localhost:3000/api/v1/users -H "Authorization: Bearer <TOKEN>"
 ```
 
-`200` (lista de **Usuario**):
+El admin ve datos de la cuenta y de uso; **no** ve el DNI, la fecha de nacimiento ni ningún monto.
+
+`200`:
 
 ```json
 [
-  { "id": 1, "user": "admin", "email": null, "admin": true }
+  { "id": 5, "user": "prueba1", "email": "prueba1@example.com", "admin": false, "active": true,
+    "first_name": "Norali", "last_name": "Gómez", "created_at": "2026-11-01T12:00:00Z",
+    "expenses_count": 14, "last_expense_on": "2026-11-10",
+    "support_messages_count": 2, "pending_support_messages_count": 1 }
 ]
 ```
 
@@ -1475,6 +1504,47 @@ Con el token de un usuario común, `403`:
 ```json
 { "errors": [ { "field": "base", "message": "Acceso denegado" } ] }
 ```
+
+### `PATCH /users/:id`
+
+Protegido, **solo admin**. Activa o desactiva una cuenta con `active=true|false`. Desactivar **no borra nada**: la persona no puede entrar (login `403`, y sus tokens dejan de valer) hasta que se la reactive. El admin no puede desactivar su propia cuenta (`422`). `404` si el id no existe. Devuelve el usuario en la forma del listado.
+
+### `GET /users/stats`
+
+Protegido, **solo admin**. Cuántos usuarios tiene la app. Lo usa el perfil del administrador.
+
+`200`:
+
+```json
+{ "total": 12, "active": 11, "admins": 1, "new_last_30_days": 4 }
+```
+
+---
+
+## Soporte
+
+Formulario del perfil: el usuario le escribe al equipo. El mensaje se guarda y, si el servidor tiene definida la variable `SUPPORT_EMAIL`, también se avisa por mail al equipo.
+
+### `POST /support_messages`
+
+Protegido. Campos: `subject` (obligatorio, hasta 120 caracteres) y `message` (obligatorio, hasta 2000). Máximo 5 mensajes por hora por usuario.
+
+`201`:
+
+```json
+{ "id": 1, "subject": "No me carga el gasto", "message": "Da error al guardar.", "attended": false,
+  "created_at": "2026-11-11T22:10:00Z", "user": "prueba1", "email": "prueba1@example.com" }
+```
+
+Con datos inválidos o demasiados mensajes seguidos, `422`.
+
+### `GET /support_messages`
+
+Protegido, **solo admin**. Lista los mensajes, del más nuevo al más viejo (misma forma que el `201` de arriba). Usuario común: `403`.
+
+### `PATCH /support_messages/:id`
+
+Protegido, **solo admin**. Marca el mensaje como atendido: `attended=true` (o `false` para volver a pendiente). `404` si el id no existe.
 
 ---
 

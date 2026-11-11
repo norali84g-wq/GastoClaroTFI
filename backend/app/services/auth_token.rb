@@ -9,11 +9,11 @@ class AuthToken
   end
 
   # Devuelve el usuario dueño del token, o nil si el token es inválido,
-  # está vencido o fue invalidado por un logout.
+  # está vencido fue invalidado por un logout o la cuenta está desactivada.
   def self.user_from(token)
     payload, = JWT.decode(token, secret, true, algorithm: ALGORITHM)
     user = User.find_by(id: payload["sub"])
-    user if user && user.token_version == payload["ver"]
+    user if user&.active? && user.token_version == payload["ver"]
   rescue JWT::DecodeError
     nil
   end

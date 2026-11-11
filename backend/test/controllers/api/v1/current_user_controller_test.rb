@@ -16,8 +16,61 @@ class Api::V1::CurrentUserControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     esperado = { "id" => @comun.id, "user" => "comun", "email" => "comun@example.com", "admin" => false,
-                 "first_name" => nil, "last_name" => nil, "birth_date" => nil }
+                 "first_name" => nil, "last_name" => nil, "birth_date" => nil, "dni" => nil }
     assert_equal esperado, response.parsed_body
+  end
+
+  test "PATCH me edita nombre, apellido, fecha de nacimiento y DNI" do
+    patch "/api/v1/me", params: { first_name: " Norali ", last_name: "Gómez", birth_date: "1990-05-20", dni: "12.345.678" },
+                        headers: headers_for(@comun)
+
+    assert_response :ok
+    assert_equal "Norali", response.parsed_body["first_name"]
+    assert_equal "1990-05-20", response.parsed_body["birth_date"]
+    assert_equal "12345678", response.parsed_body["dni"]
+    assert_equal "12345678", @comun.reload.dni
+  end
+
+  test "PATCH me rechaza una fecha de nacimiento futura" do
+    patch "/api/v1/me", params: { birth_date: 1.day.from_now.to_date.to_s }, headers: headers_for(@comun)
+
+    assert_response :unprocessable_entity
+    assert_equal "birth_date", response.parsed_body["errors"].first["field"]
+  end
+
+  test "PATCH me rechaza un DNI que no tiene 7 u 8 dígitos" do
+    [ "123456", "123456789", "12a45678" ].each do |dni|
+      patch "/api/v1/me", params: { dni: dni }, headers: headers_for(@comun)
+
+      assert_response :unprocessable_entity, "debería rechazar #{dni}"
+      assert_equal "dni", response.parsed_body["errors"].first["field"]
+    end
+  end
+
+  test "PATCH me permite borrar el DNI" do
+    @comun.update!(dni: "1234567")
+
+    patch "/api/v1/me", params: { dni: "" }, headers: headers_for(@comun)
+
+    assert_response :ok
+    assert_nil response.parsed_body["dni"]
+  end
+
+  test "PATCH me no cambia el mail, el usuario ni el rol" do
+    patch "/api/v1/me", params: { email: "otro@example.com", user: "otro", admin: true, first_name: "Ana" },
+                        headers: headers_for(@comun)
+
+    assert_response :ok
+    @comun.reload
+    assert_equal "comun@example.com", @comun.email
+    assert_equal "comun", @comun.user
+    assert_not @comun.admin?
+  end
+
+  test "PATCH me sin token da 401" do
+    patch "/api/v1/me", params: { first_name: "Ana" }
+
+    assert_response :unauthorized
   end
 
   test "me informa si el usuario es admin" do
