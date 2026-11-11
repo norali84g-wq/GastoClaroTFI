@@ -5,7 +5,7 @@ class RegisterUser
     # mail, fecha de nacimiento y contraseña, y después entrar con el mail.
     user.user = user.email if user.user.blank?
     user.admin = false
-    user.family_group = FamilyGroup.new(name: "Personal - #{params[:user]}")
+    user.family_group = FamilyGroup.new(name: "Personal - #{user.first_name.presence || user.user}")
     user.save(context: :registration)
     user
   end

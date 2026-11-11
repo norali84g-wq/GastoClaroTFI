@@ -41,10 +41,29 @@ class AddCheckConstraintsAndIndexes < ActiveRecord::Migration[8.1]
   ].freeze
 
   def change
+    reversible { |direction| direction.up { verify_existing_rows! } }
+
     CHECKS.each do |table, rules|
       rules.each { |expression, name| add_check_constraint table, expression, name: name }
     end
 
     INDEXES.each { |table, columns, name| add_index table, columns, name: name }
+  end
+
+  private
+
+  # Un CHECK nuevo falla si ya hay filas que no lo cumplen (y en MySQL hace falta 8.0.16 o más para
+  # que se aplique). Antes de crearlos se revisan los datos y, si hay filas inválidas, se avisa cuáles.
+  def verify_existing_rows!
+    offenders = CHECKS.flat_map do |table, rules|
+      rules.keys.filter_map do |expression|
+        count = select_value("SELECT COUNT(*) FROM #{table} WHERE NOT (#{expression})").to_i
+        "#{table}: #{count} fila(s) no cumplen #{expression}" if count.positive?
+      end
+    end
+    return if offenders.empty?
+
+    raise "No se pueden agregar los CHECK: hay datos inválidos. Corregilos y volvé a migrar.\n  " +
+          offenders.join("\n  ")
   end
 end
