@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { test } from 'vitest';
 import { createClient } from '../src/api/client.js';
 import { createResources } from '../src/api/resources.js';
 
@@ -91,4 +91,81 @@ test('updating an expense can remove its optional payment method', async () => {
     { id: 7, payment_method_id: null },
   );
   assert.equal((await api.updateExpense(7, { payment_method_id: null })).payment_method_id, null);
+});
+
+test('registration sends only the four contract fields and keeps field errors', async () => {
+  const credentials = {
+    user: 'demo',
+    email: 'demo@example.test',
+    password: 'example-password',
+    password_confirmation: 'example-password',
+  };
+  const issues = [{ field: 'email', message: 'ya está en uso' }];
+  const { api, revoked } = setup(
+    (path, request) => {
+      assert.equal(path, '/api/v1/register');
+      assert.equal(request.method, 'POST');
+      assert.equal(request.headers.Authorization, undefined);
+      assert.equal(request.headers['Content-Type'], 'application/json');
+      assert.deepEqual(JSON.parse(request.body), credentials);
+    },
+    { errors: issues },
+    422,
+  );
+  await assert.rejects(api.register(credentials), { status: 422, issues });
+  assert.deepEqual(revoked, []);
+});
+
+test('monthly installments uses the dashboard period and the session token', async () => {
+  const payload = { period: '2026-11', installments: [], total: '0.0' };
+  const controller = new AbortController();
+  const { api } = setup((path, request, query) => {
+    assert.equal(path, '/api/v1/installment_purchases/monthly_total');
+    assert.equal(query.get('period'), '2026-11');
+    assert.equal(request.headers.Authorization, 'Bearer example-token');
+    assert.equal(request.signal, controller.signal);
+  }, payload);
+  assert.deepEqual(await api.installmentMonthlyTotal(payload.period, controller.signal), payload);
+});
+
+test('income listing gets all records without sending a month filter', async () => {
+  const { api } = setup((path, request, query) => {
+    assert.equal(path, '/api/v1/incomes');
+    assert.equal(request.method, 'GET');
+    assert.equal(query.size, 0);
+  }, []);
+  assert.deepEqual(await api.incomes(), []);
+});
+
+test('income writes use the contract paths and only the date and amount', async () => {
+  const dateAndAmount = { date: '2026-11-09', amount: 500.25 };
+  for (const method of ['POST', 'PATCH']) {
+    const { api } = setup(
+      (path, request) => {
+        assert.equal(path, method === 'POST' ? '/api/v1/incomes' : '/api/v1/incomes/7');
+        assert.equal(request.method, method);
+        assert.equal(request.headers['Content-Type'], 'application/json');
+        assert.deepEqual(JSON.parse(request.body), dateAndAmount);
+      },
+      { id: 7 },
+    );
+    const result =
+      method === 'POST'
+        ? await api.createIncome(dateAndAmount)
+        : await api.updateIncome(7, dateAndAmount);
+    assert.equal(result.id, 7);
+  }
+  const api = createResources(
+    createClient({
+      baseUrl: 'https://example.test/api/v1',
+      getToken: () => 'token',
+      fetcher: async (url, options) => {
+        assert.equal(new URL(url).pathname, '/api/v1/incomes/7');
+        assert.equal(options.method, 'DELETE');
+        assert.equal(options.body, undefined);
+        return new Response(null, { status: 204 });
+      },
+    }),
+  );
+  assert.equal(await api.removeIncome(7), undefined);
 });

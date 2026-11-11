@@ -1,6 +1,9 @@
-const cacheName = 'gastoclaro-static-v3';
+const cacheName = 'gastoclaro-static-v5';
 const staticFiles = new Set([
   '/gastoclaro-hero.webp',
+  '/chanchito/vacio.webp',
+  '/chanchito/error.webp',
+  '/chanchito/cargando.webp',
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',
@@ -28,6 +31,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  const illustration =
+    /^\/(chanchito|metas|categorias|tarjetas|iconos|hormiga)\/[a-z-]+\.webp$/.test(url.pathname);
   const builtAsset = /^\/assets\/[^/]+\.(js|css)$/.test(url.pathname);
 
   if (
@@ -35,7 +40,7 @@ self.addEventListener('fetch', (event) => {
     url.origin !== self.location.origin ||
     url.search ||
     request.headers.has('Authorization') ||
-    (!staticFiles.has(url.pathname) && !builtAsset)
+    (!staticFiles.has(url.pathname) && !builtAsset && !illustration)
   )
     return;
 

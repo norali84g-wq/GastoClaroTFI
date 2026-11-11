@@ -139,14 +139,14 @@ form > button {
 .shell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+  grid-template-columns: clamp(13rem, 17vw, 16rem) minmax(0, 1fr);
 }
-aside {
+.shell-sidebar {
   padding: var(--space);
   background: radial-gradient(ellipse at bottom left, #2f641e, transparent 55%), #083b24;
   color: white;
 }
-aside a {
+.shell-sidebar a {
   color: white;
 }
 .brand {
@@ -173,10 +173,10 @@ aside a {
   margin-top: 0.25rem;
   line-height: 1.2;
 }
-aside .brand {
+.shell-sidebar .brand {
   --brand-bars: #083b24;
 }
-aside :focus-visible {
+.shell-sidebar :focus-visible {
   outline-color: #ffe0a1;
 }
 nav {
@@ -196,6 +196,7 @@ nav a {
 nav a:hover,
 nav a[aria-current='page'] {
   background: #397622;
+  color: white;
 }
 nav svg,
 .dashboard svg {
@@ -203,7 +204,20 @@ nav svg,
   height: 1.25rem;
   flex: none;
 }
-.menu-toggle {
+.nav-group p {
+  margin: 0.65rem 0 0;
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid #ffffff5c;
+  font-weight: 700;
+}
+.sidebar-motto {
+  margin: 3rem 0.6rem 1rem;
+  color: #e8f3df;
+  font:
+    italic 1.35rem/1.35 Georgia,
+    serif;
+}
+.mobile-navigation {
   display: none;
 }
 .content {
@@ -242,7 +256,7 @@ nav svg,
   position: absolute;
   padding: 0.6rem;
   background: white;
-  z-index: 1;
+  z-index: 3;
 }
 @media (max-width: 48rem) {
   .shell,
@@ -252,12 +266,67 @@ nav svg,
   .shell {
     grid-template-rows: auto 1fr;
   }
-  .menu-toggle {
-    display: inline-flex;
-    margin-inline-start: 0.6rem;
-  }
-  nav:not(.open) {
+  .desktop-navigation,
+  .sidebar-motto {
     display: none;
+  }
+  .shell .content {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-navigation {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 2;
+    display: block;
+    margin: 0;
+    padding: 0.25rem max(0.25rem, env(safe-area-inset-right, 0px))
+      calc(0.25rem + env(safe-area-inset-bottom, 0px)) max(0.25rem, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--color-border);
+    background: var(--color-panel);
+    box-shadow: 0 -0.15rem 0.75rem #083b2419;
+  }
+  .mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 0.1rem;
+  }
+  .mobile-tabs > * {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-height: 3rem;
+    padding: 0.2rem 0.05rem;
+    border-radius: 0.55rem;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+  .mobile-tabs button {
+    border: 0;
+    background: transparent;
+    color: var(--color-primary);
+  }
+  .mobile-tabs .mobile-add {
+    align-self: center;
+    justify-self: center;
+    width: 2.75rem;
+    min-height: 2.75rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+  }
+  .mobile-more {
+    position: absolute;
+    inset: auto 0.5rem calc(100% + 0.5rem);
+    max-height: 50dvh;
+    overflow: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.9rem;
+    background: var(--color-panel);
+    box-shadow: 0 0.3rem 1.5rem #083b2440;
   }
 }
 
@@ -273,10 +342,6 @@ nav svg,
   align-items: center;
   padding: clamp(1rem, 3vw, 2.4rem);
   border-radius: 1.25rem;
-  background:
-    linear-gradient(90deg, #fff8e7 22%, #fff8e7e0 36%, transparent 66%),
-    url('/gastoclaro-hero.webp') right 55% / 70% auto no-repeat,
-    #fff8e7;
   box-shadow: 0 0.25rem 1rem #4a3f2014;
 }
 .dashboard-banner > div {
@@ -491,7 +556,6 @@ nav svg,
   min-height: 28rem;
   max-height: 40rem;
   border-radius: 1.5rem;
-  background: #e9efdf url('/gastoclaro-hero.webp') center / cover no-repeat;
 }
 @media (max-width: 65rem) {
   .dashboard-grid {
@@ -511,15 +575,6 @@ nav svg,
 @media (max-width: 35rem) {
   .dashboard-banner {
     min-height: 11rem;
-    background-size:
-      auto,
-      auto 100%;
-    background-position:
-      center,
-      right -2.25rem center;
-    background-image:
-      linear-gradient(90deg, #fff8e7 24%, #fff8e7e3 43%, transparent 78%),
-      url('/gastoclaro-hero.webp');
   }
   .dashboard-banner > div {
     max-width: 67%;

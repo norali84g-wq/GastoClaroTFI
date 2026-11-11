@@ -20,7 +20,7 @@ npm run dev
 
 Abrí `http://localhost:5173`. Rails debe autorizar ese origen vía `FRONTEND_URL`. Para revisar la salida de producción, cerrá Vite y corré `npm run preview -- --port 5173 --strictPort`. Si alojás la salida, configurá HTTPS, la URL de Rails en el build y la redirección de las rutas internas al `index.html`. El front espera estar en la raíz del dominio.
 
-Las pruebas automáticas usan `node:test` y simulan las respuestas del cliente HTTP. La validación de la interfaz y de permisos se hace con Rails según el checklist. Para habilitar el pre-commit de este clon, ejecutá `npm run hooks:install` desde `frontend/`. Revisa la versión preparada de los archivos. Si el repo ya tiene un hook, integrá ambos antes de cambiar la configuración.
+Las pruebas automáticas usan Vitest y simulan las respuestas del cliente HTTP. La validación de la interfaz y de permisos se hace con Rails según el checklist. Para habilitar el pre-commit de este clon, ejecutá `npm run hooks:install` desde `frontend/`. Revisa la versión preparada de los archivos. Si el repo ya tiene un hook, integrá ambos antes de cambiar la configuración.
 
 - [Instrucciones para Juan](INSTRUCCIONES-JUAN.md)
 - [Checklist de Nico](CHECKLIST-NICO.md)
