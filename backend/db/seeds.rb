@@ -2,13 +2,28 @@ family_group = FamilyGroup.find_or_create_by!(name: "Familia Gorosito") do |fg|
   fg.savings_percentage = 10
 end
 
-User.find_or_create_by!(user: "admin") do |u|
-  u.password = "admin1234"
-  u.family_group = family_group
-  u.admin = true
-end
+# Cuenta de administración. En desarrollo y pruebas usa la contraseña de demostración. En producción
+# no hay contraseña por defecto: solo se crea si se define ADMIN_PASSWORD, y nunca se imprime.
+admin_password = ENV["ADMIN_PASSWORD"].presence
+admin_password ||= "admin1234" unless Rails.env.production?
 
-puts "Admin creado -> usuario: admin / contraseña: admin1234"
+if admin_password
+  User.find_or_create_by!(user: "admin") do |u|
+    u.password = admin_password
+    u.family_group = family_group
+    u.admin = true
+  end
+
+  if Rails.env.production?
+    puts "Admin creado -> usuario: admin"
+  elsif ENV["ADMIN_PASSWORD"].blank?
+    puts "Admin creado -> usuario: admin / contraseña: admin1234"
+  else
+    puts "Admin creado -> usuario: admin / contraseña: la de ADMIN_PASSWORD"
+  end
+else
+  puts "Admin no creado: definí ADMIN_PASSWORD para crearlo en producción."
+end
 
 # Categorías de ejemplo (las del contrato de la API, docs/api/api.md).
 supermercado = Category.find_or_create_by!(name: "Supermercado")
@@ -24,6 +39,19 @@ ocio = Category.find_or_create_by!(name: "Ocio")
 indumentaria = Category.find_or_create_by!(name: "Indumentaria") do |c|
   c.tracks_installments = true
 end
+
+# Subcategorías: "Alimentos" agrupa Supermercado, Carnicería, Verdulería y Panadería; "Servicios del
+# hogar" agrupa Luz, Gas e Internet. Los gastos se cargan en la subcategoría y las estadísticas los
+# suman a su categoría principal.
+alimentos = Category.find_or_create_by!(name: "Alimentos")
+supermercado.update!(parent: alimentos) if supermercado.parent_id.nil?
+carniceria = Category.find_or_create_by!(name: "Carnicería") { |c| c.parent = alimentos }
+verduleria = Category.find_or_create_by!(name: "Verdulería") { |c| c.parent = alimentos }
+panaderia = Category.find_or_create_by!(name: "Panadería") { |c| c.parent = alimentos }
+servicios = Category.find_or_create_by!(name: "Servicios del hogar")
+luz = Category.find_or_create_by!(name: "Luz") { |c| c.parent = servicios }
+gas = Category.find_or_create_by!(name: "Gas") { |c| c.parent = servicios }
+internet = Category.find_or_create_by!(name: "Internet") { |c| c.parent = servicios }
 
 # Datos de demostración: un usuario de prueba con ingresos y gastos para que el panel muestre algo.
 # No es una cuenta real y no se crea en producción. Se pueden volver a correr sin duplicar nada.
@@ -139,6 +167,18 @@ unless Rails.env.production?
                      date: fecha.call(back, 20), amount: 8_000 + (back * 700))
     crear_gasto.call(description: "Netflix #{etiqueta}", category: ocio, date: fecha.call(back, 3),
                      amount: 9_999, fixed: true)
+    crear_gasto.call(description: "Carnicería #{etiqueta}", category: carniceria,
+                     date: fecha.call(back, 7), amount: 14_000 + (back * 800))
+    crear_gasto.call(description: "Verdulería #{etiqueta}", category: verduleria,
+                     date: fecha.call(back, 8), amount: 6_500 + (back * 400))
+    crear_gasto.call(description: "Panadería #{etiqueta}", category: panaderia,
+                     date: fecha.call(back, 9), amount: 4_200 + (back * 250))
+    crear_gasto.call(description: "Luz #{etiqueta}", category: luz, date: fecha.call(back, 12),
+                     amount: 11_000 + (back * 600), fixed: true)
+    crear_gasto.call(description: "Gas #{etiqueta}", category: gas, date: fecha.call(back, 15),
+                     amount: 6_000 + (back * 300), fixed: true)
+    crear_gasto.call(description: "Internet #{etiqueta}", category: internet, date: fecha.call(back, 2),
+                     amount: 18_500, fixed: true)
   end
 
   # Este mes: más movimientos para que las categorías y las alertas se vean.
@@ -148,8 +188,36 @@ unless Rails.env.production?
                    amount: 20_000, payment_method: visa)
   crear_gasto.call(description: "Netflix", category: ocio, date: fecha.call(0, 5),
                    amount: 9_999, fixed: true)
+  crear_gasto.call(description: "Carnicería", category: carniceria, date: fecha.call(0, 6), amount: 15_200)
+  crear_gasto.call(description: "Verdulería", category: verduleria, date: fecha.call(0, 7), amount: 7_300)
+  crear_gasto.call(description: "Panadería", category: panaderia, date: fecha.call(0, 7), amount: 4_800)
+  crear_gasto.call(description: "Luz", category: luz, date: fecha.call(0, 9), amount: 12_400, fixed: true)
+  crear_gasto.call(description: "Internet", category: internet, date: fecha.call(0, 2), amount: 18_500,
+                   fixed: true)
   crear_gasto.call(description: "Almuerzo con amigas", category: ocio, date: fecha.call(0, 18),
                    amount: 5_400, channel: :delivery)
+
+  # Gasto hormiga: compras chicas con sus productos, que no están en la lista de compras ni son fijas.
+  # Este mes son 6 productos (21.900 pesos); hace 1 mes, 3; hace 2 meses, 1; hace 3 meses, ninguno.
+  # Así la demo muestra la escena de las hormigas con distinta cantidad y el estado vacío.
+  crear_gasto.call(description: "Kiosco de la esquina", category: supermercado, date: fecha.call(0, 2),
+                   items: [ [ "Alfajor", 3, 500 ], [ "Gaseosa", 2, 1_150 ], [ "Snacks", 1, 1_100 ] ])
+  crear_gasto.call(description: "Café de la mañana", category: ocio, date: fecha.call(0, 6),
+                   items: [ [ "Café con medialunas", 2, 2_400 ] ])
+  crear_gasto.call(description: "Pedido de empanadas", category: ocio, date: fecha.call(0, 9),
+                   channel: :delivery, items: [ [ "Empanadas", 1, 9_200 ] ])
+  crear_gasto.call(description: "Heladería", category: ocio, date: fecha.call(0, 13),
+                   items: [ [ "Helado", 3, 1_000 ] ])
+
+  mes_1 = today.prev_month(1).strftime("%m/%Y")
+  crear_gasto.call(description: "Café de la mañana #{mes_1}", category: ocio, date: fecha.call(1, 4),
+                   items: [ [ "Café con medialunas", 3, 2_200 ] ])
+  crear_gasto.call(description: "Kiosco #{mes_1}", category: supermercado, date: fecha.call(1, 11),
+                   items: [ [ "Alfajor", 4, 450 ], [ "Gaseosa", 1, 1_050 ] ])
+
+  mes_2 = today.prev_month(2).strftime("%m/%Y")
+  crear_gasto.call(description: "Café de la mañana #{mes_2}", category: ocio, date: fecha.call(2, 7),
+                   items: [ [ "Café con medialunas", 2, 2_000 ] ])
 
   # Presupuestos: Transporte llega al 80 % y Ocio pasa el 100 %, así que la demo muestra las dos alertas.
   [
