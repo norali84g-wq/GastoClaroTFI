@@ -11,6 +11,7 @@ import {
 import { useContext, useEffect, useState } from 'react';
 import { AlertHeader } from './components/budget-alerts.jsx';
 import { Brand } from './components/brand.jsx';
+import { Chanchito } from './components/chanchito.jsx';
 import { DesktopNavigation, MobileNavigation } from './components/navigation.jsx';
 import { DataState } from './components/common.jsx';
 import { useData } from './hooks/data.js';
@@ -32,6 +33,7 @@ import './gastoclaro-home.css';
 import './movements.css';
 import './planning.css';
 import './part-four.css';
+import './profile.css';
 
 function AppLayout() {
   return (
@@ -57,6 +59,15 @@ function AppLayout() {
 function Profile() {
   const user = useContext(AccountContext);
   const [signingOut, setSigningOut] = useState(false);
+  const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.user;
+  const parts = name.trim().split(/\s+/);
+  const initials =
+    parts.length > 1
+      ? parts
+          .slice(0, 2)
+          .map((part) => part[0])
+          .join('')
+      : Array.from(name).slice(0, 2).join('');
 
   async function signOut() {
     setSigningOut(true);
@@ -68,20 +79,39 @@ function Profile() {
   }
 
   return (
-    <>
-      <h1>{text.profile}</h1>
-      <section className="panel">
+    <section className="panel profile-card" aria-labelledby="profile-title">
+      <header className="profile-hero">
+        <div className="profile-identity">
+          <h1 id="profile-title">{text.profile}</h1>
+          <div className="profile-name">
+            <span className="profile-avatar" aria-hidden="true">
+              {initials}
+            </span>
+            <p>{name}</p>
+          </div>
+        </div>
+        <div className="profile-mascot">
+          <Chanchito pose="feliz" size={152} />
+        </div>
+      </header>
+      <div className="profile-details">
         <dl>
-          <dt>{text.user}</dt>
-          <dd>{user.user}</dd>
-          <dt>{text.email}</dt>
-          <dd>{user.email ?? text.noEmail}</dd>
+          <div>
+            <dt>{text.user}</dt>
+            <dd>{user.user}</dd>
+          </div>
+          <div>
+            <dt>{text.email}</dt>
+            <dd>{user.email ?? text.noEmail}</dd>
+          </div>
         </dl>
-        <button type="button" disabled={signingOut} onClick={signOut}>
-          {text.logout}
-        </button>
-      </section>
-    </>
+        <footer className="profile-actions">
+          <button className="secondary" type="button" disabled={signingOut} onClick={signOut}>
+            {text.logout}
+          </button>
+        </footer>
+      </div>
+    </section>
   );
 }
 

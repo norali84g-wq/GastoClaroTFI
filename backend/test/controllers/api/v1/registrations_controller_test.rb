@@ -177,4 +177,3 @@ class Api::V1::RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.parsed_body["errors"].map { |e| e["field"] }, "user"
   end
 end
-

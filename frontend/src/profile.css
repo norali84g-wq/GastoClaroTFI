@@ -1,0 +1,110 @@
+.profile-card {
+  max-width: 53rem;
+  margin-block: clamp(1rem, 4vw, 2.4rem);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  box-shadow: 0 0.75rem 2.25rem #204a3410;
+}
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(0.6rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 4vw, 2.4rem);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(125deg, var(--color-light) 25%, #f7f2dd);
+  color: var(--color-primary);
+}
+
+.profile-identity h1 {
+  margin: 0 0 0.8rem;
+}
+
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.55rem, 2vw, 0.9rem);
+}
+
+.profile-name p {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  min-width: 0;
+}
+
+.profile-avatar {
+  display: grid;
+  flex: none;
+  width: clamp(2.75rem, 7vw, 3.7rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-panel);
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.profile-mascot {
+  display: grid;
+  place-items: center;
+  width: clamp(4rem, 19vw, 9rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-panel) 53%, transparent 73%);
+}
+
+.profile-mascot .gc-pig {
+  width: 100%;
+  height: auto;
+}
+
+.profile-details {
+  padding: clamp(1rem, 4vw, 2.15rem);
+}
+
+.profile-details dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.profile-details dl > div {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-light);
+}
+
+.profile-details dt {
+  color: var(--color-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.profile-details dd {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+@media (max-width: 36rem) {
+  .profile-details dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-actions button {
+    width: 100%;
+  }
+}
