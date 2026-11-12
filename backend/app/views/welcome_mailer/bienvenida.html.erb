@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Te damos la bienvenida a GastoClaro</title>
+  <style>
+    @media only screen and (max-width: 480px) {
+      .email-wrap { padding: 12px 8px !important; }
+      .email-pad { padding-left: 22px !important; padding-right: 22px !important; }
+      .email-title { font-size: 28px !important; line-height: 34px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f4e9; color:#28352c; font-family:Arial,Helvetica,sans-serif; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+  <div style="display:none; max-height:0; max-width:0; opacity:0; overflow:hidden; font-size:1px; line-height:1px; mso-hide:all;">
+    Empezá con un gasto y llevá el resto a tu ritmo.
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f5f4e9" style="width:100%;">
+    <tr>
+      <td class="email-wrap" align="center" style="padding:32px 14px;">
+        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#fffdf5" style="width:100%; max-width:600px; background-color:#fffdf5; border:1px solid #dbe5d6; border-radius:18px;">
+          <tr>
+            <td class="email-pad" bgcolor="#eaf1df" style="padding:22px 42px 20px; background-color:#eaf1df; border-radius:17px 17px 0 0; border-bottom:1px solid #dbe5d6;">
+              <p style="margin:0 0 7px; color:#123b24; font-family:Georgia,serif; font-size:29px; line-height:34px; font-weight:bold;">GastoClaro</p>
+              <p style="margin:0; color:#3e5848; font-family:Georgia,serif; font-size:17px; line-height:23px;">Tu dinero, en orden</p>
+            </td>
+          </tr>
+          <% if (portada = attachments['gastoclaro-portada.jpg']) %>
+            <tr>
+              <td bgcolor="#fff7e4" style="padding:0; line-height:0;">
+                <img src="<%= portada.url %>" alt="El chanchito de GastoClaro junto a un frasco con monedas y una plantita" width="600" style="display:block; width:100%; max-width:600px; height:auto; border:0; color:#123b24; font:15px/22px Arial,sans-serif;">
+              </td>
+            </tr>
+          <% end %>
+          <tr>
+            <td class="email-pad" style="padding:32px 42px 38px; font-size:16px; line-height:25px;">
+              <h1 class="email-title" style="margin:0 0 18px; color:#123b24; font-family:Georgia,serif; font-size:32px; line-height:38px; font-weight:bold;"><%= @nombre.to_s.strip.present? ? "Hola, #{@nombre.to_s.strip}" : "¡Hola!" %></h1>
+
+              <p style="margin:0 0 14px;">¡Qué bueno que estés acá! Con GastoClaro podés ordenar tus gastos y ver cuánto te queda para lo que querés hacer.</p>
+              <p style="margin:0 0 14px;">Empezó como un proyecto de estudio en la UTN La Plata. Pensamos la app a partir de algo que nos toca en mayor o menor medida a muchas familias argentinas: organizar el mes cuando cambian los precios y hay cuotas por pagar.</p>
+
+              <h2 style="margin:23px 0 10px; color:#123b24; font-family:Georgia,serif; font-size:22px; line-height:27px;">En GastoClaro podés</h2>
+              <ul role="list" style="margin:0 0 18px; padding:0; list-style:none;">
+                <li style="margin:0 0 7px;"><span aria-hidden="true">🧾</span>&nbsp; Cargar tus gastos.</li>
+                <li style="margin:0 0 7px;"><span aria-hidden="true">💳</span>&nbsp; Ver tus compras en cuotas.</li>
+                <li style="margin:0 0 7px;"><span aria-hidden="true">🔔</span>&nbsp; Poner presupuestos y recibir alertas.</li>
+                <li style="margin:0;"><span aria-hidden="true">🎯</span>&nbsp; Ahorrar para una meta.</li>
+              </ul>
+              <p style="margin:0 0 20px;">Para empezar, probá cargar un gasto de hoy. Así vas a poder ver de a poco qué ya gastaste y qué te queda por pagar.</p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eaf1df" style="width:100%; margin-bottom:20px; background-color:#eaf1df; border-radius:10px;">
+                <tr>
+                  <td style="padding:16px; color:#28352c; font-size:16px; line-height:24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; margin-bottom:7px;">
+                      <tr>
+                        <td valign="middle">
+                          <h2 style="margin:0; color:#123b24; font-family:Georgia,serif; font-size:21px; line-height:25px;">Contanos cómo te fue</h2>
+                        </td>
+                        <% if (chanchito = attachments['gastoclaro-chanchito.png']) %>
+                          <td width="72" align="right" valign="middle" style="width:72px;">
+                            <img src="<%= chanchito.url %>" alt="" width="64" height="64" style="display:block; width:64px; height:64px; border:0;">
+                          </td>
+                        <% end %>
+                      </tr>
+                    </table>
+                    <p style="margin:0 0 8px;">La app está en prueba. Si algo te sirvió o te resultó difícil, nos encantaría saberlo.</p>
+                    <p style="margin:0;">Podés escribirnos desde el <strong>formulario de soporte</strong> de la app.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 8px;">Gracias por ayudarnos a mejorar GastoClaro.</p>
+              <p style="margin:0; color:#123b24;"><strong>El equipo de GastoClaro</strong></p>
+              <p style="margin:23px 0 0; padding-top:14px; border-top:1px solid #dbe5d6; color:#45574a; font-size:13px; line-height:19px;">
+                <strong>El contexto que nos inspiró.</strong> Entre enero de 2023 y agosto de 2026, la nafta súper de YPF pasó de unos $157 por litro en CABA a cerca de $2.050 en el relevamiento de CABA y provincia de Buenos Aires. Subió alrededor del 1.210%, frente al 925% del <a href="https://www.indec.gob.ar/ftp/cuadros/sociedad/indice_salarios.csv" style="color:#23523b; text-decoration:underline;">índice de salarios</a>. En julio de 2026, la mora en créditos a familias llegó al 12,9%, según el <a href="https://www.bcra.gob.ar/publicaciones/informe-sobre-bancos-julio-de-2026/" style="color:#23523b; text-decoration:underline;">Banco Central</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
