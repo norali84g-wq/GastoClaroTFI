@@ -17,6 +17,7 @@ export function Welcome() {
         <div className="gc-hero-copy">
           <h1 id="welcome-title">{text.welcomeTitle}</h1>
           <p>{text.welcomePlan}</p>
+          <p>{text.welcomePlanFollowup}</p>
         </div>
         <img
           src="/gastoclaro-hero.webp"
