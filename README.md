@@ -419,3 +419,22 @@ The GastoClaro backend builds on a previous development by the author, carried o
 ---
 
 UTN Facultad Regional La Plata · Tecnicatura Universitaria en Programación
+
+## Ejecutar con Docker
+
+Requisito: tener Docker con Compose instalado.
+
+1. Copiar las variables de entorno y completarlas:
+   ```bash
+   cp .env.example .env
+   ```
+   `RAILS_MASTER_KEY` es la clave de `backend/config/master.key` (se la pedís al equipo; no se sube al repo).
+2. Construir y levantar todo:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Abrir la app en http://localhost:8080 (la API queda en http://localhost:3000 y MySQL en el puerto 3306).
+
+Para apagar: `docker compose down` (los datos se conservan). Para borrar también los datos: `docker compose down -v`.
+
+Los puertos 3000, 3306 y 8080 tienen que estar libres. Para ejecutar sin Docker, ver `backend/README.md` y `frontend/README.md`.
