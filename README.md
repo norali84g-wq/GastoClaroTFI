@@ -211,6 +211,25 @@ El backend de GastoClaro se apoya en un desarrollo previo de la autora, realizad
 
 UTN Facultad Regional La Plata · Tecnicatura Universitaria en Programación
 
+### Ejecutar con Docker
+
+Requisito: tener Docker con Compose instalado.
+
+1. Copiar las variables de entorno y completarlas:
+   ```bash
+   cp .env.example .env
+   ```
+   `RAILS_MASTER_KEY` es la clave de `backend/config/master.key` (se la pedís al equipo; no se sube al repo).
+2. Construir y levantar todo:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Abrir la app en http://localhost:8080 (la API queda en http://localhost:3000 y MySQL en el puerto 3306).
+
+Para apagar: `docker compose down` (los datos se conservan). Para borrar también los datos: `docker compose down -v`.
+
+Los puertos 3000, 3306 y 8080 tienen que estar libres. Para ejecutar sin Docker, ver `backend/README.md` y `frontend/README.md`.
+
 ---
 
 ## 🇬🇧 English
@@ -420,21 +439,14 @@ The GastoClaro backend builds on a previous development by the author, carried o
 
 UTN Facultad Regional La Plata · Tecnicatura Universitaria en Programación
 
-## Ejecutar con Docker
+### Run with Docker
 
-Requisito: tener Docker con Compose instalado.
+Requirement: Docker with Compose installed.
 
-1. Copiar las variables de entorno y completarlas:
-   ```bash
-   cp .env.example .env
-   ```
-   `RAILS_MASTER_KEY` es la clave de `backend/config/master.key` (se la pedís al equipo; no se sube al repo).
-2. Construir y levantar todo:
-   ```bash
-   docker compose up -d --build
-   ```
-3. Abrir la app en http://localhost:8080 (la API queda en http://localhost:3000 y MySQL en el puerto 3306).
+1. Copy `.env.example` to `.env` and fill it in. `RAILS_MASTER_KEY` is the key in `backend/config/master.key` (ask the team; it is never committed).
+2. Build and start everything with `docker compose up -d --build`.
+3. Open the app at http://localhost:8080 (API at http://localhost:3000, MySQL on port 3306).
 
-Para apagar: `docker compose down` (los datos se conservan). Para borrar también los datos: `docker compose down -v`.
+To stop: `docker compose down` (data is kept). To also delete the data: `docker compose down -v`.
 
-Los puertos 3000, 3306 y 8080 tienen que estar libres. Para ejecutar sin Docker, ver `backend/README.md` y `frontend/README.md`.
+Ports 3000, 3306 and 8080 must be free. To run without Docker, see `backend/README.md` and `frontend/README.md`.
