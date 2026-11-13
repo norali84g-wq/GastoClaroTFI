@@ -21,7 +21,7 @@
 .gc-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  align-items: center;
+  align-items: start;
   overflow: hidden;
   border-radius: 1.5rem;
   background: #fff7e4;
