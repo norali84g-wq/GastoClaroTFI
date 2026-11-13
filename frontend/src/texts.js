@@ -127,16 +127,17 @@ export const text = {
   deleting: 'Borrando…',
   recordDeleted: 'Se borró correctamente.',
   editPurchase: 'Editar compra en cuotas',
-  welcomePlan: 'Registrá tus consumos, organizá tus tarjetas y cuotas, y ahorrá para tus metas.',
+  welcomePlan:
+    'Organizá tus ingresos, consumos, cuotas y ahorros de manera simple, sin necesidad de saber de economía. Porque cuando sabés adónde va tu dinero, podés decidir mejor hacia dónde querés ir.',
   welcomeBenefits: [
-    ['wallet', 'Registrá ingresos y consumos'],
-    ['budget', 'Planificá tu presupuesto'],
-    ['cart', 'Analizá tus consumos'],
-    ['savings', 'Seguí tus metas'],
+    ['wallet', 'Registrá y entendé tus consumos'],
+    ['budget', 'Organizá tu presupuesto'],
+    ['cart', 'Descubrí qué cambió'],
+    ['savings', 'Avanzá hacia tus metas'],
   ],
   welcomePurpose: 'Por qué existe GastoClaro',
   welcomeContext:
-    'En Argentina, pagar más por una compra puede significar que subieron los precios, que compraste más o las dos cosas. Registrar tus consumos te da una base para entender qué cambió.',
+    'En Argentina, los precios cambian constantemente y los ingresos no siempre acompañan los aumentos. Los índices oficiales de inflación no necesariamente reflejan cuánto cambió tu costo de vida, porque cada persona tiene hábitos de consumo diferentes. Las compras en cuotas también pueden complicar la planificación del presupuesto. GastoClaro nace para ayudarte a entender y organizar tus finanzas sin necesidad de saber de economía. Registrá tus consumos, seguí tus cuotas, compará precios y cantidades entre meses y planificá tus ahorros. Porque ordenar tu dinero no significa dejar de disfrutar, sino tomar decisiones más conscientes, anticiparte a tus compromisos y avanzar hacia tus metas con mayor tranquilidad.',
   moneyEquation: 'Ingreso = Consumo + Ahorro',
   welcomePillars: [
     ['Misión', 'Hacer sencillo registrar y entender tus finanzas cotidianas.'],
@@ -169,7 +170,7 @@ export const text = {
   recentExpenses: 'Tus últimos consumos',
   noMonthlyExpenses: 'Todavía no hay consumos para este mes.',
   quickActions: 'Accesos rápidos',
-  welcomeTitle: 'Tomá el control de tus finanzas',
+  welcomeTitle: 'Entendé tu dinero. Disfrutá tus logros.',
   welcomeMotto: 'Pequeños hábitos, grandes logros',
   welcomeStart: 'Comenzar ahora gratis',
   welcomeLogin: 'Ya tengo cuenta: Iniciar sesión',
