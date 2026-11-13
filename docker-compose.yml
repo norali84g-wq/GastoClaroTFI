@@ -41,7 +41,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_API_URL: http://localhost:3000/api/v1
     container_name: gastoclaro_web
     restart: unless-stopped
     depends_on:
