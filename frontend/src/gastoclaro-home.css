@@ -20,30 +20,45 @@
 }
 .gc-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  padding: clamp(1.5rem, 3vw, 3rem);
   overflow: hidden;
   border-radius: 1.5rem;
   background: #fff7e4;
   box-shadow: 0 0.4rem 1.25rem #4a3f2014;
 }
 .gc-hero-copy {
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  min-width: 0;
 }
 .gc-hero-copy h1 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1.25rem;
   color: #123b24;
-  font:
-    bold clamp(2rem, 5vw, 4rem)/1.05 Georgia,
-    serif;
+  font: bold clamp(2.1rem, 3.5vw, 3.25rem)/1.1 Georgia, serif;
+}
+.gc-hero-copy h1::after {
+  content: '';
+  display: block;
+  width: 6rem;
+  height: 0.3rem;
+  margin-top: 1.15rem;
+  border-radius: 1rem;
+  background: #53a51c;
 }
 .gc-hero-copy p {
-  max-width: 34ch;
+  max-width: 45ch;
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+.gc-hero-copy p:last-child {
+  margin-bottom: 0;
 }
 .gc-welcome .gc-hero img {
   display: block;
   width: 100%;
   height: auto;
+  border-radius: 0.6rem;
 }
 .gc-benefits,
 .gc-pillars {
@@ -210,8 +225,11 @@
   .gc-entry-actions {
     grid-template-columns: minmax(0, 1fr);
   }
-  .gc-hero-copy {
-    padding-bottom: 0.4rem;
+  .gc-hero {
+    padding: clamp(1.25rem, 4vw, 2rem);
+  }
+  .gc-hero-copy h1 {
+    font-size: clamp(2rem, 8vw, 2.9rem);
   }
   .gc-welcome .gc-hero img {
     aspect-ratio: 1.75;
