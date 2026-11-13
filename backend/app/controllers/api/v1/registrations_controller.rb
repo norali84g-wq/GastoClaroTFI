@@ -5,6 +5,7 @@ class Api::V1::RegistrationsController < Api::V1::BaseController
     user = RegisterUser.call(registration_params)
 
     if user.persisted?
+      WelcomeMailer.bienvenida(user).deliver_later
       render json: SessionSerializer.call(user), status: :created
     else
       render_record_errors(user)

@@ -27,6 +27,29 @@ class Api::V1::RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_not user.admin?
   end
 
+  test "el registro encola el mail de bienvenida para el usuario creado" do
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+      post "/api/v1/register", params: valid_params, as: :json
+    end
+
+    trabajo = enqueued_jobs.find { |job| job["job_class"] == "ActionMailer::MailDeliveryJob" }
+    assert_equal [ "WelcomeMailer", "bienvenida" ], trabajo["arguments"].first(2)
+  end
+
+  test "un intento con una cuenta existente no envia mail de bienvenida" do
+    crear_usuario_existente
+
+    assert_no_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+      post "/api/v1/register", params: valid_params.merge(user: "otra", email: "existente@example.com"), as: :json
+    end
+  end
+
+  test "un registro rechazado no envia mail de bienvenida" do
+    assert_no_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+      post "/api/v1/register", params: valid_params.merge(email: "no-es-un-mail"), as: :json
+    end
+  end
+
   test "el registro informa cuando vence el token" do
     post "/api/v1/register", params: valid_params, as: :json
 
