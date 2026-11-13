@@ -128,7 +128,9 @@ export const text = {
   recordDeleted: 'Se borró correctamente.',
   editPurchase: 'Editar compra en cuotas',
   welcomePlan:
-    'Organizá tus ingresos, consumos, cuotas y ahorros de manera simple, sin necesidad de saber de economía. Porque cuando sabés adónde va tu dinero, podés decidir mejor hacia dónde querés ir.',
+    'Organizá tus ingresos, consumos, cuotas y ahorros en un solo lugar, sin necesidad de saber de economía.',
+  welcomePlanConclusion:
+    'Descubrí adónde va tu dinero y tomá mejores decisiones para alcanzar tus metas.',
   welcomeBenefits: [
     ['wallet', 'Registrá y entendé tus consumos'],
     ['budget', 'Organizá tu presupuesto'],
