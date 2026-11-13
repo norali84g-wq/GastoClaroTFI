@@ -19,7 +19,7 @@ GastoClaro ayuda a saber **en qué se va la plata**. Parte de una premisa simple
 
 > **Ingreso = Consumo + Ahorro/Inversión**
 
-El usuario arma un presupuesto mensual detallado, registra lo que realmente gasta y el sistema compara ambos: avisa cuando se está por pasar del presupuesto, pone en evidencia los gastos hormiga y muestra si un gasto subió por precio o por consumo. Los informes pueden expresarse en **moneda constante** (ajustados por IPC), para comparar meses sin que la inflación distorsione los números.
+El usuario arma un presupuesto mensual detallado, registra lo que realmente gasta y el sistema compara ambos: avisa cuando se está por pasar del presupuesto, pone en evidencia los gastos hormiga y muestra si un gasto subió por precio o por consumo. Como mejora a futuro, los informes podrán expresarse en **moneda constante** (ajustados por IPC), para comparar meses sin que la inflación distorsione los números.
 
 ### El problema
 
@@ -32,32 +32,45 @@ Cada vez más familias argentinas no llegan a pagar lo que deben:
 
 Las planillas y los Excel se terminan abandonando, y las apps que circulan son globales: no están pensadas para la realidad económica del país.
 
-**GastoClaro no es una app de gastos más.** Compara tu presupuesto con lo que realmente gastás, calcula tu **inflación personal** y te avisa **antes** de que tengas que endeudarte.
+**GastoClaro no es una app de gastos más.** Compara tu presupuesto con lo que realmente gastás, te muestra cuánto subió cada cosa que comprás por precio y cuánto por cantidad (base de tu **inflación personal**) y te avisa **antes** de que tengas que endeudarte.
 
 👉 **[Conocé el análisis completo del problema y sus fuentes](docs/analisis-del-problema.md)**
 
 ### Funcionalidades
 
+Lo que ya está implementado en esta entrega:
+
 | Módulo | Qué hace |
 |---|---|
-| Usuarios | Registro, inicio de sesión, recuperación de contraseña y perfil |
-| Categorías | Rubros y subrubros personalizables, clasificados como necesidad, deseo o ahorro/inversión |
-| Gastos | Alta, edición y baja de gastos, con ítems (cantidad y precio unitario), comercio, gasto fijo, canal de compra y foto del ticket |
+| Usuarios | Registro, inicio de sesión y perfil. El administrador gestiona usuarios, los activa o desactiva y atiende los mensajes de soporte |
+| Categorías | Rubros y subrubros personalizables. Se pueden desactivar conservando el historial |
+| Gastos | Alta, edición y baja de gastos, con ítems (cantidad y precio unitario), comercio, gasto fijo y canal de compra. El panel de administración permite adjuntar la foto o el PDF del comprobante |
 | Compras en cuotas | Se carga el total, la cantidad de cuotas y el interés; el sistema calcula cada cuota con interés, la reparte en su mes y muestra las pendientes |
-| Mantenimiento de tarjeta | Monto fijo mensual del grupo, editable, que se suma una sola vez al total del mes de las cuotas. *(Trabajo futuro: intereses cuando se financia el resumen)* |
-| Comercios | Navegación Panel → Categoría → Comercio → ítems, con totales en cada nivel |
+| Mantenimiento de tarjeta | Monto fijo mensual, editable, que se suma una sola vez al total del mes de las cuotas |
 | Ingresos | Registro de ingresos por período |
-| Presupuesto | Presupuesto mensual por ítem y alertas al 80 % y al 100 % |
-| Informes | Totales, % sobre el ingreso, balance Ingreso = Consumo + Ahorro, regla 50/30/20, comparativas y gráficos |
-| Historial de precios | Variación de precio y cantidad por producto, mes a mes y entre comercios |
+| Presupuesto y alertas | Presupuesto mensual por categoría, con alertas al 80 % y al 100 % y un consejo de educación financiera en cada alerta |
+| Estadísticas | Totales y comparativas por categoría, subcategoría e ítem |
 | Comparación mensual | Compara dos meses por categoría y producto y separa cuánto subió por precio y cuánto por cantidad |
 | Lista de compras | Ítems planificados por mes con precio estimado, marcados como comprados y copia de los pendientes a otro mes |
-| Inflación personal | Cuánto subieron los precios de lo que compra cada usuario, comparado con el IPC |
-| Gastos hormiga | Detección por umbral configurable, con consejos de educación financiera |
-| Metas de ahorro | Monto y fecha objetivo, barra de progreso y mail de felicitación al cumplirlas |
-| Moneda constante | Ajuste opcional de los informes por IPC (INDEC) |
-| Exportación | Resúmenes en CSV y PDF |
-| Back-office | Administración de índices IPC, rubros predefinidos y consejos financieros |
+| Gastos hormiga | Detección de compras chicas y repetidas que no estaban planificadas |
+| Metas de ahorro | Monto y fecha objetivo, con seguimiento del progreso y mail de felicitación al cumplirlas |
+| Soporte | Formulario de consultas, con aviso por mail al equipo |
+
+### Trabajo futuro
+
+Quedó fuera de esta entrega y se plantea como mejora:
+
+| Mejora | Descripción |
+|---|---|
+| Recuperación de contraseña | Enlace de restablecimiento por mail con Action Mailer, manteniendo el inicio de sesión con JWT |
+| Inicio de sesión con Google | Alternativa al registro con usuario y contraseña |
+| Inflación personal | Un porcentaje propio de cada usuario, calculado con lo que realmente compra y comparado con el IPC oficial (INDEC) |
+| Moneda constante | Mostrar los montos de distintos meses en pesos de hoy, ajustados por IPC, también por producto |
+| Exportación | Resúmenes en CSV (se abre en Excel) y PDF |
+| Regla 50/30/20 | Como consejo de ahorro para educación financiera |
+| Moneda extranjera | Gastos en dólares con cotización editable |
+| Carga por voz | Registro de consumos y de la lista de compras con asistente de voz |
+| Analítica y monitoreo | Google Analytics y Sentry; despliegue público con HTTPS y validación de la instalación de la PWA |
 
 ### Stack tecnológico
 
@@ -247,7 +260,7 @@ GastoClaro helps people understand **where their money goes**. It is built on a 
 
 > **Income = Consumption + Savings/Investment**
 
-Users plan a detailed monthly budget, record what they actually spend, and the system compares both: it warns them before they exceed the budget, highlights small recurring expenses ("ant expenses"), and shows whether an expense increased because of price or because of consumption. Reports can optionally be expressed in **constant currency** (adjusted by the national CPI), so months can be compared without inflation distorting the numbers.
+Users plan a detailed monthly budget, record what they actually spend, and the system compares both: it warns them before they exceed the budget, highlights small recurring expenses ("ant expenses"), and shows whether an expense increased because of price or because of consumption. As future work, reports will be able to be expressed in **constant currency** (adjusted by the national CPI), so months can be compared without inflation distorting the numbers.
 
 ### The problem
 
@@ -260,32 +273,45 @@ More and more Argentine households cannot keep up with their debts:
 
 Spreadsheets end up abandoned, and the apps available are global: they are not designed for the country's economic reality.
 
-**GastoClaro is not just another expense app.** It compares your budget with what you actually spend, calculates your **personal inflation** and warns you **before** you need to borrow.
+**GastoClaro is not just another expense app.** It compares your budget with what you actually spend, shows how much each item you buy went up because of price and how much because of quantity (the basis of your **personal inflation**), and warns you **before** you need to borrow.
 
 👉 **[Read the full problem analysis and its sources (in Spanish)](docs/analisis-del-problema.md)**
 
 ### Features
 
+What is already implemented in this delivery:
+
 | Module | What it does |
 |---|---|
-| Users | Sign up, log in, password recovery and profile |
-| Categories | Customizable categories and subcategories, classified as need, want or savings/investment |
-| Expenses | Create, edit and delete expenses, with line items (quantity and unit price), store, fixed expense flag, purchase channel and receipt photo |
+| Users | Sign up, log in and profile. The administrator manages users, activates or deactivates them and handles support messages |
+| Categories | Customizable categories and subcategories. They can be deactivated while keeping their history |
+| Expenses | Create, edit and delete expenses, with line items (quantity and unit price), store, fixed expense flag and purchase channel. The admin panel allows attaching a photo or PDF of the receipt |
 | Installment purchases | Enter the total, number of installments and interest; the system computes each installment with interest, assigns it to its month and shows the remaining ones |
-| Card maintenance fee | Fixed monthly amount per group, editable, added once to the month's installments total. *(Future work: interest when the statement is financed)* |
-| Stores | Drill-down navigation Dashboard → Category → Store → items, with totals at each level |
+| Card maintenance fee | Fixed monthly amount, editable, added once to the month's installments total |
 | Income | Income records per period |
-| Budget | Monthly budget per item, with alerts at 80% and 100% |
-| Reports | Totals, % of income, Income = Consumption + Savings balance, 50/30/20 rule, comparisons and charts |
-| Price history | Price and quantity changes per product, month over month and across stores |
+| Budget and alerts | Monthly budget per category, with alerts at 80% and 100% and a financial education tip in each alert |
+| Statistics | Totals and comparisons by category, subcategory and item |
 | Monthly comparison | Compares two months by category and product and splits the change into price effect and quantity effect |
 | Shopping list | Planned items per month with estimated price, marked as purchased, with pending items copied to another month |
-| Personal inflation | How much the prices of what each user actually buys went up, compared with the CPI |
-| Ant expenses | Detection by configurable threshold, with financial education tips |
-| Savings goals | Target amount and date, progress bar and congratulation email when reached |
-| Constant currency | Optional CPI adjustment of reports (INDEC, Argentina) |
-| Export | Summaries in CSV and PDF |
-| Back-office | Management of CPI values, default categories and financial tips |
+| Ant expenses | Detection of small, repeated purchases that were not planned |
+| Savings goals | Target amount and date, with progress tracking and a congratulation email when reached |
+| Support | Contact form, with an email notice to the team |
+
+### Future work
+
+Left out of this delivery and planned as improvements:
+
+| Improvement | Description |
+|---|---|
+| Password recovery | Reset link sent by email with Action Mailer, keeping JWT login |
+| Sign in with Google | Alternative to username and password sign-up |
+| Personal inflation | Each user's own percentage, computed from what they actually buy and compared with the official CPI (INDEC) |
+| Constant currency | Show amounts from different months in today's pesos, adjusted by CPI, also per product |
+| Export | Summaries in CSV (opens in Excel) and PDF |
+| 50/30/20 rule | As a saving tip for financial education |
+| Foreign currency | Expenses in US dollars with an editable exchange rate |
+| Voice input | Recording expenses and the shopping list with a voice assistant |
+| Analytics and monitoring | Google Analytics and Sentry; public deployment with HTTPS and PWA installation checks |
 
 ### Tech stack
 
