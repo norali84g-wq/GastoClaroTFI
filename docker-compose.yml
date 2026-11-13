@@ -14,6 +14,40 @@ services:
       - db_data:/var/lib/mysql
       # Crea la base de test y le da permisos a MYSQL_USER (solo corre con el volumen vacío).
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    # Avisa cuándo MySQL ya está lista, para que el back no arranque antes
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./backend
+    container_name: gastoclaro_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db            # "db" es el nombre del servicio de arriba
+      DB_USER: root          # root puede crear las bases de producción
+      DB_PASSWORD: root
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}   # sale del archivo .env
+      FRONTEND_URL: http://localhost:8080     # origen permitido por CORS
+    ports:
+      - "3000:80"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:3000/api/v1
+    container_name: gastoclaro_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
 
 volumes:
   db_data:
