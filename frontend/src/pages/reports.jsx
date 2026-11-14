@@ -313,6 +313,50 @@ export function MonthlyComparison() {
   );
 }
 
+function effectLines(item) {
+  const lines = [];
+  const quantityEffect = Number(item.quantity_effect);
+  const priceEffect = Number(item.price_effect);
+  if (item.status === 'not_bought') return [text.itemNotBought];
+  if (quantityEffect > 0) lines.push(text.itemMoreQuantity(formatMoney(quantityEffect)));
+  if (quantityEffect < 0) lines.push(text.itemLessQuantity(formatMoney(Math.abs(quantityEffect))));
+  if (priceEffect > 0) lines.push(text.itemPriceUp(formatMoney(priceEffect)));
+  if (priceEffect < 0) lines.push(text.itemPriceDown(formatMoney(Math.abs(priceEffect))));
+  return lines.length ? lines : [text.itemOnPlan];
+}
+
+function ItemComparison({ items }) {
+  if (!items.length) return <Status message={text.noItemComparison} />;
+  return (
+    <ul className="records movement-list">
+      {items.map((item) => (
+        <li className="record" key={`${item.category.id}-${item.name}`}>
+          <div className="gc-category-heading">
+            <ProductIcon name={item.name} />
+            <div>
+              <strong>{item.name}</strong>
+              <p>
+                {text.itemPlanned(
+                  quantity.format(item.planned_quantity),
+                  formatMoney(item.planned_unit_price),
+                )}
+              </p>
+              <p>
+                {text.itemReal(
+                  quantity.format(item.real_quantity),
+                  formatMoney(item.real_unit_price),
+                )}
+              </p>
+              <p>{effectLines(item).join(' · ')}</p>
+            </div>
+          </div>
+          {item.status === 'over' && <strong className="gc-over-budget">{text.overBudget}</strong>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function UnplannedProducts({ items }) {
   if (!items.length) return <Status message={text.noUnplanned} />;
   return (
@@ -423,6 +467,8 @@ function StatisticsTabs({ data, categories }) {
         hidden={active !== 2}
         tabIndex={0}
       >
+        <ItemComparison items={data.by_item ?? []} />
+        <h3>{text.itemUnplannedTitle}</h3>
         <UnplannedProducts items={data.unplanned.items} />
       </div>
     </section>

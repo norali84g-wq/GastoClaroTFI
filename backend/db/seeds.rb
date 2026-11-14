@@ -54,8 +54,9 @@ gas = Category.find_or_create_by!(name: "Gas") { |c| c.parent = servicios }
 internet = Category.find_or_create_by!(name: "Internet") { |c| c.parent = servicios }
 
 # Datos de demostración: un usuario de prueba con ingresos y gastos para que el panel muestre algo.
-# No es una cuenta real y no se crea en producción. Se pueden volver a correr sin duplicar nada.
-unless Rails.env.production?
+# No es una cuenta real. No se crean en producción salvo que se pida con DEMO_DATA=true (útil para
+# grabar la demo en Docker). Se pueden volver a correr sin duplicar nada.
+if !Rails.env.production? || ENV["DEMO_DATA"] == "true"
   demo_family = FamilyGroup.find_or_create_by!(name: "Personal - demo") do |fg|
     fg.savings_percentage = 10
   end
@@ -196,6 +197,10 @@ unless Rails.env.production?
                    fixed: true)
   crear_gasto.call(description: "Almuerzo con amigas", category: ocio, date: fecha.call(0, 18),
                    amount: 5_400, channel: :delivery)
+
+  # Un producto de la lista de compras que subió de precio (planificado 2 × 4.800, comprado 2 × 5.600).
+  crear_gasto.call(description: "Aceite del mes", category: supermercado, date: fecha.call(0, 5),
+                   items: [ [ "Aceite", 2, 5_600 ] ])
 
   # Gasto hormiga: compras chicas con sus productos, que no están en la lista de compras ni son fijas.
   # Este mes son 6 productos (21.900 pesos); hace 1 mes, 3; hace 2 meses, 1; hace 3 meses, ninguno.
