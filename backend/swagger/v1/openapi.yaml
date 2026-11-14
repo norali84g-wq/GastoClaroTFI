@@ -352,7 +352,7 @@ paths:
         - name: month
           in: query
           required: false
-          description: Mes (1 a 12). Acota `by_category` y `unplanned` a ese mes.
+          description: Mes (1 a 12). Acota `by_category`, `by_item` y `unplanned` a ese mes.
           schema:
             type: integer
             minimum: 1

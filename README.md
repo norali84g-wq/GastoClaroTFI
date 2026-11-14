@@ -51,6 +51,7 @@ Las planillas y los Excel se terminan abandonando, y las apps que circulan son g
 | Informes | Totales, % sobre el ingreso, balance Ingreso = Consumo + Ahorro, regla 50/30/20, comparativas y gráficos |
 | Historial de precios | Variación de precio y cantidad por producto, mes a mes y entre comercios |
 | Comparación mensual | Compara dos meses por categoría y producto y separa cuánto subió por precio y cuánto por cantidad |
+| Estadística por producto | Cada producto de la lista de compras contra lo que realmente se compró (cantidad y precio), con filtros por categoría, subcategoría y producto |
 | Lista de compras | Ítems planificados por mes con precio estimado, marcados como comprados y copia de los pendientes a otro mes |
 | Inflación personal | Cuánto subieron los precios de lo que compra cada usuario, comparado con el IPC |
 | Gastos hormiga | Detección por umbral configurable, con consejos de educación financiera |
@@ -285,6 +286,7 @@ Spreadsheets end up abandoned, and the apps available are global: they are not d
 | Reports | Totals, % of income, Income = Consumption + Savings balance, 50/30/20 rule, comparisons and charts |
 | Price history | Price and quantity changes per product, month over month and across stores |
 | Monthly comparison | Compares two months by category and product and splits the change into price effect and quantity effect |
+| Per-product statistics | Each shopping-list product against what was really bought (quantity and price), with filters by category, subcategory and product |
 | Shopping list | Planned items per month with estimated price, marked as purchased, with pending items copied to another month |
 | Personal inflation | How much the prices of what each user actually buys went up, compared with the CPI |
 | Ant expenses | Detection by configurable threshold, with financial education tips |
