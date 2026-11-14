@@ -352,7 +352,7 @@ paths:
         - name: month
           in: query
           required: false
-          description: Mes (1 a 12). Acota `by_category` y `unplanned` a ese mes.
+          description: Mes (1 a 12). Acota `by_category`, `by_item` y `unplanned` a ese mes.
           schema:
             type: integer
             minimum: 1
@@ -1918,7 +1918,7 @@ components:
             accumulated: "730000.0"
     Statistics:
       type: object
-      required: [year, month, available_years, months, by_category, unplanned]
+      required: [year, month, available_years, months, by_category, by_item, unplanned]
       properties:
         year:
           type: integer
@@ -1944,8 +1944,51 @@ components:
           description: Consumo del período por categoría principal, de mayor a menor.
           items:
             $ref: "#/components/schemas/StatisticsCategory"
+        by_item:
+          type: array
+          description: Cada producto de la lista de gastos fijos del período contra lo comprado, de mayor a menor diferencia.
+          items:
+            $ref: "#/components/schemas/ItemComparison"
         unplanned:
           $ref: "#/components/schemas/Unplanned"
+    ItemComparison:
+      type: object
+      required: [category, name, planned_quantity, real_quantity, planned_unit_price, real_unit_price, planned_total, real_total, difference, quantity_effect, price_effect, status]
+      properties:
+        category:
+          $ref: "#/components/schemas/CategoryRef"
+        name:
+          type: string
+          example: Tomate
+        planned_quantity:
+          $ref: "#/components/schemas/Decimal"
+        real_quantity:
+          $ref: "#/components/schemas/Decimal"
+        planned_unit_price:
+          $ref: "#/components/schemas/Decimal"
+        real_unit_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Precio promedio realmente pagado (0 si no se compró).
+        planned_total:
+          $ref: "#/components/schemas/Decimal"
+        real_total:
+          $ref: "#/components/schemas/Decimal"
+        difference:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Real menos planificado.
+        quantity_effect:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: "(cantidad real - cantidad planificada) × precio planificado."
+        price_effect:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: La diferencia menos el efecto cantidad. Los dos efectos suman la diferencia.
+        status:
+          type: string
+          enum: [over, under, on_plan, not_bought]
     StatisticsMonth:
       type: object
       required: [month, income, consumption, savings, unplanned]

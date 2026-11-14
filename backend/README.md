@@ -84,6 +84,7 @@ Lo básico:
 
 Endpoints destacados de las últimas funciones:
 
+- `GET /api/v1/statistics`: consumo, ahorro y gasto hormiga por mes, por categoría y por producto (`by_item`: cada producto de la lista de compras contra lo comprado, con el efecto del precio y el de la cantidad).
 - `GET /api/v1/statistics/monthly_comparison`: compara dos meses por categoría y producto, separando el efecto del precio y el de la cantidad.
 - `GET /api/v1/shopping_list_items?status=pending|purchased` y `POST /api/v1/shopping_list_items/copy`: lista de compras con ítems comprados y copia de los pendientes a otro mes.
 - `GET /api/v1/installment_purchases/monthly_total`: total de un mes (cuotas con interés más el mantenimiento mensual de la tarjeta, que se suma una sola vez).

@@ -48,6 +48,7 @@ class StatisticsReport
       available_years: available_years,
       months: monthly_rows(months, income_rows, expense_rows, unplanned_all),
       by_category: by_category(leaves, expense_rows, planned_items, range_periods),
+      by_item: by_item(leaves, planned_items, expense_items, range_periods),
       unplanned: unplanned_summary(unplanned_all.select { |item| range_periods.include?(period_of(item.expense.date)) })
     }
   end
@@ -136,6 +137,69 @@ class StatisticsReport
       group[:subcategories].sort_by! { |sub| -sub[:real] }
     end
     groups.values.sort_by { |group| -group[:total] }
+  end
+
+  # Cada producto de la lista de gastos fijos contra lo que realmente se compró en el período.
+  # Se emparejan por categoría y nombre (sin importar mayúsculas ni espacios). Muestra cantidad y
+  # precio unitario planificados y reales, y separa la diferencia de plata en dos efectos:
+  #   efecto cantidad = (cantidad real - cantidad planificada) * precio planificado
+  #   efecto precio   = diferencia - efecto cantidad  (= (precio real - precio planificado) * cantidad real)
+  # Así los dos efectos suman siempre la diferencia exacta. Los productos comprados que no estaban
+  # planificados no van acá: son el gasto hormiga.
+  def self.by_item(leaves, planned_items, expense_items, range_periods)
+    categories = leaves.index_by(&:id)
+    planned = planned_items.select { |item| range_periods.include?(item.period) && categories.key?(item.category_id) }
+                           .group_by { |item| [ item.category_id, normalize(item.name) ] }
+    real = expense_items.select { |item| range_periods.include?(period_of(item.expense.date)) }
+                        .group_by { |item| [ item.expense.category_id, normalize(item.name) ] }
+
+    rows = planned.map do |key, planned_list|
+      item_row(categories[key.first], planned_list, real[key] || [])
+    end
+    rows.sort_by { |row| [ -row[:difference].abs, row[:name], row[:category][:id] ] }
+  end
+
+  def self.item_row(category, planned_list, real_list)
+    planned_quantity = planned_list.sum(0.to_d) { |item| item.quantity || 0 }
+    planned_total = planned_list.sum(0.to_d, &:subtotal)
+    real_quantity = real_list.sum(0.to_d, &:quantity)
+    real_total = real_list.sum(0.to_d, &:subtotal)
+    difference = real_total - planned_total
+    quantity_effect = item_quantity_effect(planned_quantity, real_quantity, planned_total)
+
+    {
+      category: category_json(category),
+      name: planned_list.first.name,
+      planned_quantity: planned_quantity, real_quantity: real_quantity,
+      planned_unit_price: average_price(planned_total, planned_quantity),
+      real_unit_price: average_price(real_total, real_quantity),
+      planned_total: planned_total, real_total: real_total,
+      difference: difference,
+      quantity_effect: quantity_effect,
+      price_effect: difference - quantity_effect,
+      status: item_status(planned_total, real_total, real_quantity)
+    }
+  end
+
+  # Si no se compró nada, todo lo planificado se ahorró (es cantidad). Si lo planificado no tenía
+  # cantidad, no hay con qué medir el efecto cantidad y todo cae en precio.
+  def self.item_quantity_effect(planned_quantity, real_quantity, planned_total)
+    return -planned_total if real_quantity.zero?
+    return 0.to_d if planned_quantity.zero?
+
+    ((real_quantity - planned_quantity) * planned_total / planned_quantity).round(2)
+  end
+
+  def self.average_price(total, quantity)
+    quantity.positive? ? (total / quantity).round(2) : 0.to_d
+  end
+
+  def self.item_status(planned_total, real_total, real_quantity)
+    return "not_bought" if real_quantity.zero?
+    return "over" if real_total > planned_total
+    return "under" if real_total < planned_total
+
+    "on_plan"
   end
 
   def self.unplanned_summary(items)

@@ -147,6 +147,45 @@ class Api::V1::StatisticsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 70, decimal(mes(body, "2026-09")["unplanned"])
   end
 
+  test "by_item compara cada producto planificado con lo comprado y separa precio de cantidad" do
+    ShoppingListItem.create!(family_group: @familia, category: @verduras, name: "Tomate",
+                             period: "2026-09", quantity: 2, estimated_unit_price: 100)
+    ShoppingListItem.create!(family_group: @familia, category: @carnes, name: "Asado",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 500)
+    ShoppingListItem.create!(family_group: @familia, category: @carnes, name: "Pollo",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 300)
+    gasto_con_items(@user, @verduras, Date.new(2026, 9, 3), [ [ " tomate ", 3, 150 ] ])
+    gasto_con_items(@user, @carnes, Date.new(2026, 9, 4), [ [ "ASADO", 1, 500 ], [ "Chicle", 1, 10 ] ])
+
+    filas = statistics["by_item"].to_h { |fila| [ fila["name"], fila ] }
+    tomate = filas["Tomate"]
+
+    assert_equal %w[Tomate Asado Pollo].sort, filas.keys.sort
+    assert_equal 2, decimal(tomate["planned_quantity"])
+    assert_equal 3, decimal(tomate["real_quantity"])
+    assert_equal 100, decimal(tomate["planned_unit_price"])
+    assert_equal 150, decimal(tomate["real_unit_price"])
+    assert_equal 250, decimal(tomate["difference"])
+    assert_equal 100, decimal(tomate["quantity_effect"])
+    assert_equal 150, decimal(tomate["price_effect"])
+    assert_equal "over", tomate["status"]
+    assert_equal "on_plan", filas["Asado"]["status"]
+    assert_equal "not_bought", filas["Pollo"]["status"]
+    assert_equal(-300, decimal(filas["Pollo"]["quantity_effect"]))
+    assert_equal 0, decimal(filas["Pollo"]["price_effect"])
+    assert_not_includes filas.keys, "Chicle"
+  end
+
+  test "by_item respeta el filtro de month" do
+    ShoppingListItem.create!(family_group: @familia, category: @verduras, name: "Tomate",
+                             period: "2026-08", quantity: 1, estimated_unit_price: 100)
+    ShoppingListItem.create!(family_group: @familia, category: @verduras, name: "Lechuga",
+                             period: "2026-09", quantity: 1, estimated_unit_price: 80)
+
+    assert_equal [ "Lechuga" ], statistics({ month: "9" })["by_item"].map { |fila| fila["name"] }
+    assert_equal [ "Tomate" ], statistics({ month: "8" })["by_item"].map { |fila| fila["name"] }
+  end
+
   test "con month solo cuenta ese mes, pero siempre trae todos los meses del anio" do
     Expense.create!(user: @user, category: @transporte, amount: 300, date: Date.new(2026, 8, 12))
     Expense.create!(user: @user, category: @transporte, amount: 700, date: Date.new(2026, 9, 5))

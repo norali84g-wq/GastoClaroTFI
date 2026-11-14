@@ -51,6 +51,7 @@ Lo que ya está implementado en esta entrega:
 | Presupuesto y alertas | Presupuesto mensual por categoría, con alertas al 80 % y al 100 % y un consejo de educación financiera en cada alerta |
 | Estadísticas | Totales y comparativas por categoría, subcategoría e ítem |
 | Comparación mensual | Compara dos meses por categoría y producto y separa cuánto subió por precio y cuánto por cantidad |
+| Estadística por producto | Cada producto de la lista de compras contra lo que realmente se compró (cantidad y precio), con filtros por categoría, subcategoría y producto |
 | Lista de compras | Ítems planificados por mes con precio estimado, marcados como comprados y copia de los pendientes a otro mes |
 | Gastos hormiga | Detección de compras chicas y repetidas que no estaban planificadas |
 | Metas de ahorro | Monto y fecha objetivo, con seguimiento del progreso y mail de felicitación al cumplirlas |
@@ -239,6 +240,12 @@ Requisito: tener Docker con Compose instalado.
    ```
 3. Abrir la app en http://localhost:8080 (la API queda en http://localhost:3000 y MySQL en el puerto 3306).
 
+Para cargar los datos de demostración en Docker (usuario `demo` / contraseña `demo1234`, útil para grabar la demo):
+
+```bash
+docker compose exec -e DEMO_DATA=true api ./bin/rails db:seed
+```
+
 Para apagar: `docker compose down` (los datos se conservan). Para borrar también los datos: `docker compose down -v`.
 
 Los puertos 3000, 3306 y 8080 tienen que estar libres. Para ejecutar sin Docker, ver `backend/README.md` y `frontend/README.md`.
@@ -292,6 +299,7 @@ What is already implemented in this delivery:
 | Budget and alerts | Monthly budget per category, with alerts at 80% and 100% and a financial education tip in each alert |
 | Statistics | Totals and comparisons by category, subcategory and item |
 | Monthly comparison | Compares two months by category and product and splits the change into price effect and quantity effect |
+| Per-product statistics | Each shopping-list product against what was really bought (quantity and price), with filters by category, subcategory and product |
 | Shopping list | Planned items per month with estimated price, marked as purchased, with pending items copied to another month |
 | Ant expenses | Detection of small, repeated purchases that were not planned |
 | Savings goals | Target amount and date, with progress tracking and a congratulation email when reached |
@@ -472,6 +480,12 @@ Requirement: Docker with Compose installed.
 1. Copy `.env.example` to `.env` and fill it in. `RAILS_MASTER_KEY` is the key in `backend/config/master.key` (ask the team; it is never committed).
 2. Build and start everything with `docker compose up -d --build`.
 3. Open the app at http://localhost:8080 (API at http://localhost:3000, MySQL on port 3306).
+
+To load the demo data in Docker (user `demo` / password `demo1234`, handy for recording the demo):
+
+```bash
+docker compose exec -e DEMO_DATA=true api ./bin/rails db:seed
+```
 
 To stop: `docker compose down` (data is kept). To also delete the data: `docker compose down -v`.
 

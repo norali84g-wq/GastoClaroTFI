@@ -313,6 +313,126 @@ export function MonthlyComparison() {
   );
 }
 
+function effectLines(item) {
+  const lines = [];
+  const quantityEffect = Number(item.quantity_effect);
+  const priceEffect = Number(item.price_effect);
+  if (item.status === 'not_bought') return [text.itemNotBought];
+  if (quantityEffect > 0) lines.push(text.itemMoreQuantity(formatMoney(quantityEffect)));
+  if (quantityEffect < 0) lines.push(text.itemLessQuantity(formatMoney(Math.abs(quantityEffect))));
+  if (priceEffect > 0) lines.push(text.itemPriceUp(formatMoney(priceEffect)));
+  if (priceEffect < 0) lines.push(text.itemPriceDown(formatMoney(Math.abs(priceEffect))));
+  return lines.length ? lines : [text.itemOnPlan];
+}
+
+function ItemRow({ item }) {
+  return (
+    <li className="record">
+      <div className="gc-category-heading">
+        <ProductIcon name={item.name} />
+        <div>
+          <strong>{item.name}</strong>
+          <p>
+            {text.itemPlanned(
+              quantity.format(item.planned_quantity),
+              formatMoney(item.planned_unit_price),
+            )}
+          </p>
+          <p>
+            {text.itemReal(quantity.format(item.real_quantity), formatMoney(item.real_unit_price))}
+          </p>
+          <p>{effectLines(item).join(' · ')}</p>
+        </div>
+      </div>
+      {item.status === 'over' && <strong className="gc-over-budget">{text.overBudget}</strong>}
+    </li>
+  );
+}
+
+function ItemComparison({ items, groups }) {
+  const [rootId, setRootId] = useState('');
+  const [leafId, setLeafId] = useState('');
+  const [search, setSearch] = useState('');
+  if (!items.length) return <Status message={text.noItemComparison} />;
+
+  const rootOf = new Map();
+  for (const group of groups) {
+    rootOf.set(group.category.id, group.category.id);
+    for (const sub of group.subcategories ?? []) rootOf.set(sub.category.id, group.category.id);
+  }
+  const rootGroup = groups.find((group) => String(group.category.id) === rootId);
+  const leafOptions = rootGroup?.subcategories ?? [];
+  const term = search.trim().toLowerCase();
+  const visible = items.filter(
+    (item) =>
+      (!rootId || String(rootOf.get(item.category.id)) === rootId) &&
+      (!leafId || String(item.category.id) === leafId) &&
+      (!term || item.name.toLowerCase().includes(term)),
+  );
+  const byCategory = new Map();
+  for (const item of visible) {
+    const list = byCategory.get(item.category.id) ?? { category: item.category, items: [] };
+    list.items.push(item);
+    byCategory.set(item.category.id, list);
+  }
+
+  return (
+    <>
+      <div className="gc-item-filters">
+        <Field
+          label={text.itemFilterCategory}
+          value={rootId}
+          onChange={(event) => {
+            setRootId(event.target.value);
+            setLeafId('');
+          }}
+        >
+          <option value="">{text.itemAllCategories}</option>
+          {groups.map((group) => (
+            <option key={group.category.id} value={group.category.id}>
+              {group.category.name}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label={text.itemFilterSubcategory}
+          value={leafId}
+          disabled={!leafOptions.length}
+          onChange={(event) => setLeafId(event.target.value)}
+        >
+          <option value="">{text.itemAllSubcategories}</option>
+          {leafOptions.map((sub) => (
+            <option key={sub.category.id} value={sub.category.id}>
+              {sub.category.name}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label={text.itemSearch}
+          type="search"
+          value={search}
+          placeholder={text.itemSearchPlaceholder}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
+      {visible.length === 0 ? (
+        <Status message={text.noItemMatches} />
+      ) : (
+        [...byCategory.values()].map((group) => (
+          <section key={group.category.id} className="gc-item-group">
+            <h3>{group.category.name}</h3>
+            <ul className="records movement-list">
+              {group.items.map((item) => (
+                <ItemRow key={`${item.category.id}-${item.name}`} item={item} />
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
+    </>
+  );
+}
+
 function UnplannedProducts({ items }) {
   if (!items.length) return <Status message={text.noUnplanned} />;
   return (
@@ -423,6 +543,8 @@ function StatisticsTabs({ data, categories }) {
         hidden={active !== 2}
         tabIndex={0}
       >
+        <ItemComparison items={data.by_item ?? []} groups={data.by_category} />
+        <h3>{text.itemUnplannedTitle}</h3>
         <UnplannedProducts items={data.unplanned.items} />
       </div>
     </section>
