@@ -338,6 +338,8 @@ export const text = {
   date: 'Fecha',
   amount: 'Monto',
   description: 'Descripción',
+  incomeName: 'Nombre (opcional)',
+  incomeNamePlaceholder: 'Ej.: Sueldo, changa, venta',
   category: 'Categoría',
   choose: 'Elegí una opción',
   incomes: 'Ingresos',

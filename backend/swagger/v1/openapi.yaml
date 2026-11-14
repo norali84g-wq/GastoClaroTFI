@@ -2412,6 +2412,12 @@ components:
           $ref: "#/components/schemas/Decimal"
         date:
           $ref: "#/components/schemas/Date"
+        description:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Nombre del ingreso (opcional), por ejemplo "Sueldo".
+          example: Sueldo
         user:
           $ref: "#/components/schemas/UserRef"
     IncomeInput:
@@ -2425,6 +2431,11 @@ components:
           example: 450000
         date:
           $ref: "#/components/schemas/Date"
+        description:
+          type: string
+          maxLength: 100
+          description: Nombre del ingreso (opcional).
+          example: Sueldo
     IncomeUpdate:
       type: object
       properties:
@@ -2435,6 +2446,10 @@ components:
           example: 460000
         date:
           $ref: "#/components/schemas/Date"
+        description:
+          type: string
+          maxLength: 100
+          example: Sueldo
       example:
         amount: 460000
 
