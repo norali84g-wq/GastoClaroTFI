@@ -3,4 +3,5 @@ class Income < ApplicationRecord
 
   validates :amount, numericality: { greater_than: 0 }
   validates :date, presence: true
+  validates :description, length: { maximum: 100 }
 end

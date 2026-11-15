@@ -39,7 +39,7 @@ class Api::V1::IncomesController < Api::V1::BaseController
   end
 
   def income_params
-    params.permit(:amount, :date)
+    params.permit(:amount, :date, :description)
   end
 
   def income_json(income)
@@ -47,6 +47,7 @@ class Api::V1::IncomesController < Api::V1::BaseController
       id: income.id,
       amount: income.amount,
       date: income.date,
+      description: income.description,
       user: { id: income.user_id, user: income.user.user }
     }
   end

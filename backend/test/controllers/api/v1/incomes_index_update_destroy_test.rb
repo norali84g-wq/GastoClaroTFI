@@ -51,6 +51,26 @@ class Api::V1::IncomesIndexUpdateDestroyTest < ActionDispatch::IntegrationTest
 
   # --- POST /incomes ---
 
+  test "create guarda y devuelve la descripcion del ingreso" do
+    post "/api/v1/incomes", params: { amount: 100, date: "2026-09-15", description: "Sueldo" }, headers: headers_for(@user), as: :json
+
+    assert_response :created
+    assert_equal "Sueldo", response.parsed_body["description"]
+  end
+
+  test "create rechaza una descripcion de mas de 100 caracteres" do
+    post "/api/v1/incomes", params: { amount: 100, date: "2026-09-15", description: "a" * 101 }, headers: headers_for(@user), as: :json
+
+    assert_response :unprocessable_entity
+  end
+
+  test "update puede cambiar la descripcion" do
+    patch "/api/v1/incomes/#{@ingreso.id}", params: { description: "Changa" }, headers: headers_for(@user), as: :json
+
+    assert_response :ok
+    assert_equal "Changa", response.parsed_body["description"]
+  end
+
   test "create devuelve tambien el usuario" do
     post "/api/v1/incomes", params: { amount: 100, date: "2026-09-15" }, headers: headers_for(@user), as: :json
 

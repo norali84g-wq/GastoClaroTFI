@@ -19,7 +19,11 @@ function IncomeForm({ income, date, onSaved, onCancel }) {
   function submit(event) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
-    const body = { date: values.get('date'), amount: Number(values.get('amount')) };
+    const body = {
+      date: values.get('date'),
+      amount: Number(values.get('amount')),
+      description: String(values.get('description') ?? '').trim(),
+    };
     run(async () => {
       const saved = income ? await api.updateIncome(income.id, body) : await api.createIncome(body);
       onSaved(saved);
@@ -48,7 +52,16 @@ function IncomeForm({ income, date, onSaved, onCancel }) {
           error={error}
           required
         />
-        <FormError retrySubmit error={error} fieldNames={['date', 'amount']} />
+        <Field
+          label={text.incomeName}
+          name="description"
+          type="text"
+          maxLength={100}
+          placeholder={text.incomeNamePlaceholder}
+          defaultValue={income?.description ?? ''}
+          error={error}
+        />
+        <FormError retrySubmit error={error} fieldNames={['date', 'amount', 'description']} />
         <div className="actions">
           <button disabled={busy}>{busy ? text.saving : text.save}</button>
           <button type="button" className="secondary" disabled={busy} onClick={onCancel}>
@@ -120,6 +133,7 @@ export function Incomes({ initialEditor = false }) {
                   {incomes.map((income) => (
                     <li className="panel record" key={income.id}>
                       <div>
+                        {income.description && <strong>{income.description}</strong>}
                         <time dateTime={income.date}>{income.date}</time>
                         {admin && <p>{income.user.user}</p>}
                       </div>
