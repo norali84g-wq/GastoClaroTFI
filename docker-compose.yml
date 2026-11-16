@@ -34,6 +34,14 @@ services:
       DB_PASSWORD: root
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}   # sale del archivo .env
       FRONTEND_URL: http://localhost:8080     # origen permitido por CORS
+      # Mails: salen por SMTP con los datos del archivo .env (sin claves en el repo).
+      SMTP_ADDRESS: ${SMTP_ADDRESS:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Los mails se mandan con deliver_later: sin esto nadie procesa la cola y no sale ninguno.
+      SOLID_QUEUE_IN_PUMA: "true"
     ports:
       - "3000:80"
 
