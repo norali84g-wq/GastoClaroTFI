@@ -24,7 +24,13 @@ production:
   primary: &primary_production
     <<: *default
     database: gastoclaro_production
-    password: <%= ENV["DB_PASSWORD"] %>
+    password: <%= ENV["DB_PASSWORD"].to_json %>
+    <% if ENV["DB_SSL_MODE"].present? %>
+    ssl_mode: <%= ENV["DB_SSL_MODE"].to_json %>
+    <% end %>
+    <% if ENV["DB_SSL_CA"].present? %>
+    sslca: <%= ENV["DB_SSL_CA"].to_json %>
+    <% end %>
   cache:
     <<: *primary_production
     database: gastoclaro_production_cache
