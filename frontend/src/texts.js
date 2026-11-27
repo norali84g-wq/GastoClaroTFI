@@ -60,7 +60,8 @@ export const text = {
   bellAlerts: (count) => `Alertas del mes (${count})`,
   alertAt80: (name) => `Vas por el 80 % de tu presupuesto de ${name}`,
   alertAt90: (name) => `¡Atención! Estás usando el 90 % de tu presupuesto de ${name}`,
-  alertAt100: (name) => `Superaste tu presupuesto de ${name}`,
+  alertAt100: (name) => `Alcanzaste tu presupuesto de ${name}`,
+  alertExceeded: (name) => `Superaste tu presupuesto de ${name}`,
   alertAt: (threshold, name) => `Llegaste al ${threshold} % de tu presupuesto de ${name}`,
   chooseGoalImage: 'Elegir imagen',
   uploadGoalImage: 'Subir desde mi dispositivo',
@@ -214,6 +215,7 @@ export const text = {
   totalWithInterest: 'Total con interés',
   installmentAmount: 'Importe por cuota',
   installmentMonthTotal: 'Total de cuotas del mes',
+  noInstallmentsForMonth: 'No hay compras con cuotas para este mes.',
   installmentsCalendarHint:
     'El total corresponde a las cuotas del mes por fecha, aunque ya estén marcadas como pagadas.',
   closeDetails: 'Cerrar detalle',
@@ -260,17 +262,17 @@ export const text = {
   fullYear: 'Todo el año',
   applyFilters: 'Aplicar filtros',
   unplanned: 'Gasto hormiga',
-  unplannedDefinition: 'Productos comprados que no estaban en la lista de gastos fijos del mes.',
+  unplannedDefinition: 'Acá se suma lo que compraste por fuera de lo planificado para cada mes.',
   unplannedSceneLabel:
     'Un chanchito preocupado ve cómo las hormigas se llevan monedas de su frasquito al hormiguero',
   unplannedSceneCaption: (productCount, total) =>
     productCount === 1
-      ? `1 compra chica ya suma ${total}`
-      : `${productCount} compras chicas ya suman ${total}`,
+      ? `1 ítem sin planificar suma ${total}`
+      : `${productCount} ítems sin planificar suman ${total}`,
   noUnplanned: 'No hay productos de gasto hormiga para este período.',
-  unplannedNoteTitle: '¿Qué es el gasto hormiga?',
+  unplannedNoteTitle: '¿Cómo aparece un gasto acá?',
   unplannedNote:
-    'Un cafecito, un alfajor, algo rico que no tenías previsto… Son compras chiquitas que, juntas, pueden sumar más de lo que imaginás. 🐜',
+    'En Nuevo consumo, usá Agregar ítem para cargar el producto. GastoClaro lo suma automáticamente si ese producto no figura en tu Lista de compras del mismo mes y categoría.',
   noCategoryStatistics: 'No hay consumos por categoría para este período.',
   base: 'Base',
   compared: 'Comparado',

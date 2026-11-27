@@ -14,6 +14,7 @@ import {
   formatMoney,
 } from '../components/common.jsx';
 import { useAction, useData } from '../hooks/data.js';
+import { purchaseHasInstallmentInPeriod } from '../domain/periods.js';
 import { api } from '../hooks/session.js';
 import { text } from '../texts.js';
 
@@ -279,10 +280,13 @@ export function Installments() {
       )}
       <DeleteRecord action={deletion} />
       <DataState result={purchases}>
-        {(items) =>
-          items.length ? (
+        {(items) => {
+          const monthlyPurchases = items.filter((item) =>
+            purchaseHasInstallmentInPeriod(item, period),
+          );
+          return monthlyPurchases.length ? (
             <ul className="records planning-grid">
-              {items.map((item) => (
+              {monthlyPurchases.map((item) => (
                 <PurchaseCard
                   key={item.id}
                   purchase={item}
@@ -296,9 +300,9 @@ export function Installments() {
               ))}
             </ul>
           ) : (
-            <Status />
-          )
-        }
+            <Status message={text.noInstallmentsForMonth} />
+          );
+        }}
       </DataState>
     </>
   );

@@ -1,6 +1,6 @@
 import { DeleteRecord, useDeleteRecord } from '../components/delete-record.jsx';
 import { SelectorIcono } from '../components/selector-icono.jsx';
-import { iconoPorNombre } from '../domain/icons.js';
+import { iconosMediosDePago } from '../domain/icons.js';
 import { useIconPreferences } from '../hooks/icon-preferences.jsx';
 import { TarjetaIcono } from '../components/tarjeta-icono.jsx';
 import { Status } from '../components/chanchito.jsx';
@@ -16,7 +16,7 @@ function PaymentMethodForm({ method, onSaved, onCancel }) {
   const { paymentIcons } = useIconPreferences();
   const [name, setName] = useState(method?.name ?? '');
   const [icon, setIcon] = useState(() => (method ? paymentIcons.selected(method) : ''));
-  const automatic = iconoPorNombre(name);
+  const automatic = paymentIcons.suggest(name);
   function submit(event) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -56,6 +56,7 @@ function PaymentMethodForm({ method, onSaved, onCancel }) {
           required
         />
         <SelectorIcono
+          opciones={iconosMediosDePago}
           valor={icon}
           onChange={setIcon}
           automatico={automatic}

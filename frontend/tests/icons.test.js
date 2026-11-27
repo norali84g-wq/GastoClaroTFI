@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { test } from 'vitest';
-import { catalogoIconos, esClaveIcono, iconoPorNombre } from '../src/domain/icons.js';
+import {
+  catalogoIconos,
+  esClaveIcono,
+  iconoMedioDePagoPorNombre,
+  iconoPorNombre,
+  iconosMediosDePago,
+} from '../src/domain/icons.js';
 
 test.each([
   ['NAFTA', 'nafta'],
@@ -16,6 +22,16 @@ test.each([
   [null, 'otros'],
 ])('matches %s to %s', (name, expected) => {
   assert.equal(iconoPorNombre(name), expected);
+});
+
+test('payment methods exclude expense icons from choices and suggestions', () => {
+  const choices = iconosMediosDePago.map(({ clave }) => clave);
+  assert.ok(choices.includes('tarjeta-azul'));
+  assert.ok(choices.includes('efectivo'));
+  assert.ok(!choices.includes('supermercado'));
+  assert.equal(iconoMedioDePagoPorNombre('Visa del supermercado'), 'tarjeta');
+  assert.equal(iconoMedioDePagoPorNombre('Billetera virtual'), 'efectivo');
+  assert.equal(iconoMedioDePagoPorNombre('Supermercado'), 'otros');
 });
 
 test('every icon key has exactly one light 128px transparent WebP', () => {

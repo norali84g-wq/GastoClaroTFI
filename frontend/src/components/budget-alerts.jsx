@@ -14,18 +14,19 @@ const tones = {
   100: ['triste', 'red', text.alertAt100],
 };
 
-export function BudgetAlert({ alert }) {
+export function BudgetAlert({ alert, exceeded = false }) {
   const { threshold_percentage: threshold, budget, financial_tip: tip } = alert;
   const [pose, tone, message] = tones[threshold] ?? [
     'preocupado',
     'yellow',
     (name) => text.alertAt(threshold, name),
   ];
+  const alertMessage = threshold === 100 && exceeded ? text.alertExceeded : message;
   return (
     <article className={`gc-alert gc-alert-${tone}`}>
       <Chanchito pose={pose} size={66} />
       <div>
-        <strong>{message(budget.category.name)}</strong>
+        <strong>{alertMessage(budget.category.name)}</strong>
         <small>{formatMoney(budget.amount)}</small>
         {tip?.content && (
           <p>

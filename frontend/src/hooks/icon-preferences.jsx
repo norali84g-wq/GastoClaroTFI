@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { esClaveIcono, iconoPorNombre } from '../domain/icons.js';
+import { esClaveIcono, iconoMedioDePagoPorNombre, iconoPorNombre } from '../domain/icons.js';
 import { useData } from './data.js';
 import { AccountContext, api } from './session.js';
 
 const IconContext = createContext(null);
 
-function useLocalIcons(scope) {
+function useLocalIcons(scope, suggestedIcon = iconoPorNombre) {
   const key = `gastoclaro.icons.${import.meta.env.VITE_API_URL ?? ''}.${scope}`;
   const [icons, setIcons] = useState(() => {
     try {
@@ -38,13 +38,14 @@ function useLocalIcons(scope) {
     const value = Object.hasOwn(record, 'icon') ? record.icon : icons[record.id];
     if (!esClaveIcono(value)) return '';
     // When the server persists the suggested key, it has no separate automatic flag.
-    return Object.hasOwn(record, 'icon') && value === iconoPorNombre(record.name) ? '' : value;
+    return Object.hasOwn(record, 'icon') && value === suggestedIcon(record.name) ? '' : value;
   }
 
   return {
     remember,
     selected,
-    resolve: (record) => selected(record) || iconoPorNombre(record.name),
+    suggest: suggestedIcon,
+    resolve: (record) => selected(record) || suggestedIcon(record.name),
   };
 }
 
@@ -52,7 +53,10 @@ export function IconPreferences({ children }) {
   const account = useContext(AccountContext);
   const categories = useData(api.categories);
   const categoryIcons = useLocalIcons('categories');
-  const paymentIcons = useLocalIcons(`payments.${account.id ?? account.user}`);
+  const paymentIcons = useLocalIcons(
+    `payments.${account.id ?? account.user}`,
+    iconoMedioDePagoPorNombre,
+  );
 
   return (
     <IconContext.Provider value={{ categories, categoryIcons, paymentIcons }}>
