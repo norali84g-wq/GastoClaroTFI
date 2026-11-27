@@ -3,13 +3,18 @@ import { catalogoIconos, normalizarIconos } from '../domain/icons.js';
 import { Icono } from './icono.jsx';
 import { text } from '../texts.js';
 
-export function SelectorIcono({ valor, onChange, automatico, error, disabled }) {
+export function SelectorIcono({
+  valor,
+  onChange,
+  automatico,
+  error,
+  disabled,
+  opciones = catalogoIconos,
+}) {
   const [query, setQuery] = useState('');
   const id = useId();
   const search = normalizarIconos(query);
-  const matches = catalogoIconos.filter(({ etiqueta }) =>
-    normalizarIconos(etiqueta).includes(search),
-  );
+  const matches = opciones.filter(({ etiqueta }) => normalizarIconos(etiqueta).includes(search));
   const groups = new Map();
   for (const item of matches) {
     if (!groups.has(item.grupo)) groups.set(item.grupo, []);

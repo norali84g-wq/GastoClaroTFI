@@ -138,11 +138,22 @@ export function Budgets({ initialPeriod }) {
                     percentage={item.percentage}
                   />
                   <DataState result={alerts}>
-                    {(records) =>
-                      records
-                        .filter((alert) => alert.budget.id === item.id)
-                        .map((alert) => <BudgetAlert alert={alert} key={alert.id} />)
-                    }
+                    {(records) => {
+                      const remaining = Number(item.remaining);
+                      const threshold = remaining <= 0 ? 100 : Math.min(item.percentage, 99);
+                      const [currentAlert] = records
+                        .filter(
+                          (alert) =>
+                            alert.budget.id === item.id && alert.threshold_percentage <= threshold,
+                        )
+                        .sort((a, b) => b.threshold_percentage - a.threshold_percentage);
+
+                      return (
+                        currentAlert && (
+                          <BudgetAlert alert={currentAlert} exceeded={remaining < 0} />
+                        )
+                      );
+                    }}
                   </DataState>
                   <RecordActions
                     disabled={disabled}

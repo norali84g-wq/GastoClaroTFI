@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { createResources } from '../src/api/resources.js';
-import { shiftPeriod } from '../src/domain/periods.js';
+import { purchaseHasInstallmentInPeriod, shiftPeriod } from '../src/domain/periods.js';
 
 test('period shifts keep the year and month in ISO form across year boundaries', () => {
   assert.equal(shiftPeriod('2026-12', 1), '2027-01');
   assert.equal(shiftPeriod('2027-01', -1), '2026-12');
+});
+
+test('purchases appear only in months covered by their installments', () => {
+  const purchase = { first_period: '2026-11', installments_count: 3 };
+  assert.equal(purchaseHasInstallmentInPeriod(purchase, '2026-09'), false);
+  assert.equal(purchaseHasInstallmentInPeriod(purchase, '2026-11'), true);
+  assert.equal(purchaseHasInstallmentInPeriod(purchase, '2026-12'), true);
+  assert.equal(purchaseHasInstallmentInPeriod(purchase, '2027-01'), true);
+  assert.equal(purchaseHasInstallmentInPeriod(purchase, '2027-02'), false);
 });
 
 test('monthly resources send the documented query parameters', () => {

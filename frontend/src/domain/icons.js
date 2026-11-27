@@ -121,6 +121,10 @@ export const catalogoIconos = groups.flatMap(([grupo, items]) =>
   })),
 );
 
+export const iconosMediosDePago = catalogoIconos.filter(
+  ({ clave }) => ['efectivo', 'tarjeta', 'otros'].includes(clave) || clave.startsWith('tarjeta-'),
+);
+
 export function normalizarIconos(value) {
   return String(value ?? '')
     .normalize('NFD')
@@ -134,10 +138,15 @@ const validKeys = new Set(catalogoIconos.map(({ clave }) => clave));
 const terms = catalogoIconos
   .flatMap(({ clave, palabras }) => palabras.map((word) => [clave, normalizarIconos(word)]))
   .sort((a, b) => b[1].length - a[1].length);
+const paymentKeys = new Set(iconosMediosDePago.map(({ clave }) => clave));
+const paymentTerms = terms.filter(([clave]) => paymentKeys.has(clave));
 
 export const esClaveIcono = (clave) => validKeys.has(clave);
 
-export function iconoPorNombre(texto) {
+function buscarIconoPorNombre(texto, palabras) {
   const value = ` ${normalizarIconos(texto)} `;
-  return terms.find(([, word]) => value.includes(` ${word} `))?.[0] ?? 'otros';
+  return palabras.find(([, word]) => value.includes(` ${word} `))?.[0] ?? 'otros';
 }
+
+export const iconoPorNombre = (texto) => buscarIconoPorNombre(texto, terms);
+export const iconoMedioDePagoPorNombre = (texto) => buscarIconoPorNombre(texto, paymentTerms);
